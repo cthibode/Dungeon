@@ -15,6 +15,8 @@ var P_UP = 3;     /* These are the directions for the player */
 var P_DOWN = 0;
 var P_LEFT = 1;
 var P_RIGHT = 2;
+var CHEST_CLOSED = 2;   /* Frame numbers for closed/open chests */
+var CHEST_OPEN = 3;
 var ENEMIES = 3   /* Index of the EnemyGroup child in the scene */
 
 /* These variables keep track of the current room's info. These are updated
@@ -51,10 +53,14 @@ Hud = Class.create(Group, {
       this.bg.x = 0;
       this.bg.y = game.height - GRID*2;
       
-      this.health = createLabel("Health: " + player.health + "/" + player.maxHealth, 5, this.bg.y+5);
-      this.numPotions = createLabel("Health Potions x " + player.numPotions, 5, this.bg.y+25);
+      this.stats1 = createLabel("Health: " + player.health + "/" + player.maxHealth + "<br>" +
+                                "Health Potions x " + player.numPotions + "<br>" +
+                                "Keys x " + player.numKeys, 5, this.bg.y+5, "14px sans-serif");
+                                
       this.attack = createLabel("Str: " + player.strength, 245, game.height - GRID*2 + 10, "10px sans-serif");
       this.defense = createLabel("Def: " + player.defense, 245, this.attack.y + 15, "10px sans-serif");
+//       this.stats2 = createLabel("Str: " + player.strength + "<br>" + "Def: " + player.defense,
+//                                 245, game.height - GRID*2 + 10, "10px sans-serif");
       
       this.weapon = new Sprite(GRID, GRID);
       this.weapon.image = game.assets["assets/images/items.png"];
@@ -69,21 +75,24 @@ Hud = Class.create(Group, {
       this.shield.y = game.height - GRID*2 + 10;
       
       this.addChild(this.bg);
-      this.addChild(this.health);
-      this.addChild(this.numPotions);
+      this.addChild(this.stats1);
       this.addChild(this.weapon);
       this.addChild(this.shield);
+//       this.addChild(this.stats2);
       this.addChild(this.attack);
       this.addChild(this.defense);
    },
    
    onenterframe: function() {
-      this.health.text = "Health: " + player.health + "/" + player.maxHealth;
-      this.numPotions.text = "Health Potions x " + player.numPotions;
+      this.stats1.text = "Health: " + player.health + "/" + player.maxHealth + "<br>" +
+                        "Health Potions x " + player.numPotions + "<br>" +
+                        "Keys x " + player.numKeys;
+//       this.stats2.text = "Str: " + player.strength + "<br>" + "Def: " + player.defense;
       this.weapon.frame = player.sword;
-      this.shield.frame = player.shield;
+      this.shield.frame = player.shield;  
       this.attack.text = "Str: " + player.strength;
       this.defense.text = "Def: " + player.defense;
+
    }
 });
 
@@ -115,10 +124,11 @@ Player = Class.create(Sprite, {
       this.strength = 5;
       this.shield = -1;
       this.defense = 0;
-      this.accuracy = 80; // Out of 100
+      this.accuracy = 0.8;
       this.health = 100;
       this.maxHealth = 100;
       this.numPotions = 0;
+      this.numKeys = 1;
    },
    
    onenterframe: function() {
@@ -126,8 +136,10 @@ Player = Class.create(Sprite, {
          this.move();
       if (!this.isMoving)
          this.attack();
-      if (!this.isAttacking && !this.isMoving)
+      if (!this.isAttacking && !this.isMoving) {
          this.checkItem();
+         this.checkChest();
+      }
          
       /* Update average health and total time metrics */
       if (this.age % game.fps == 0)
@@ -138,7 +150,7 @@ Player = Class.create(Sprite, {
       /* Check if picked up potion */
       var tileContents = map.items.checkTile(this.x, this.y);
       if (this.cooldown == 0 && game.input.swapItem && tileContents > 0 || 
-          tileContents == 0) {
+          tileContents == 0 || tileContents == 4) {
          game.processPickup(tileContents);
          metrics.str = player.strength;
          metrics.def = player.defense;
@@ -159,6 +171,38 @@ Player = Class.create(Sprite, {
       }
       if (this.cooldown > 0)
          this.cooldown--;
+   },
+   
+   checkChest: function() {
+      if (game.input.select && player.numKeys > 0) {
+         if (player.direction == P_UP && map.chests.checkTile(this.x, this.y-GRID) == CHEST_CLOSED) {
+            map.chests.tiles[(this.y-GRID)/GRID][this.x/GRID] = CHEST_OPEN;
+            map.editCollision(this.x/GRID, (this.y-GRID)/GRID, 0);
+            map.items.tiles[(this.y-GRID)/GRID][this.x/GRID] = game.getRandomItem();
+            player.numKeys--;
+         }
+         else if (player.direction == P_DOWN && map.chests.checkTile(this.x, this.y+GRID) == CHEST_CLOSED) {
+            map.chests.tiles[(this.y+GRID)/GRID][this.x/GRID] = CHEST_OPEN;
+            map.editCollision(this.x/GRID, (this.y+GRID)/GRID, 0);
+            map.items.tiles[(this.y+GRID)/GRID][this.x/GRID] = game.getRandomItem();
+            player.numKeys--;
+         }
+         else if (player.direction == P_LEFT && map.chests.checkTile(this.x-GRID, this.y) == CHEST_CLOSED) {
+            map.chests.tiles[this.y/GRID][(this.x-GRID)/GRID] = CHEST_OPEN;
+            map.editCollision((this.x-GRID)/GRID, this.y/GRID, 0);
+            map.items.tiles[this.y/GRID][(this.x-GRID)/GRID] = game.getRandomItem();
+            player.numKeys--;
+         }
+         else if (player.direction == P_RIGHT && map.chests.checkTile(this.x+GRID, this.y) == CHEST_CLOSED) {
+            map.chests.tiles[this.y/GRID][(this.x+GRID)/GRID] = CHEST_OPEN;
+            map.editCollision((this.x+GRID)/GRID, this.y/GRID, 0);
+            map.items.tiles[this.y/GRID][(this.x+GRID)/GRID] = game.getRandomItem();
+            player.numKeys--;
+         }
+         
+         map.chests.loadData(map.chests.tiles);
+         map.items.loadData(map.items.tiles);
+      }
    },
    
    attack: function() {   
@@ -252,13 +296,11 @@ Player = Class.create(Sprite, {
       if (this.health <= 0) {
          metrics.dmgTaken += dmg + this.health;
          metrics.minHealth = 0;
-         map.dmgTaken += dmg + this.health;
          this.health = 0;
          game.endLevel(true);
       }
       else {
          metrics.dmgTaken += dmg;
-         map.dmgTaken += dmg;
          if (player.health < metrics.minHealth)
             metrics.minHealth = player.health;
       }
@@ -282,15 +324,21 @@ Room = Class.create(Map, {
       this.items.image = game.assets["assets/images/items.png"];
       this.items.tiles = new Array(ROOM_HIG);
       
+      this.chests = new Map(GRID, GRID);
+      this.chests.image = game.assets["assets/images/items.png"];
+      this.chests.tiles = new Array(ROOM_HIG);
+      
       /* Set base tiles (floor and walls) */
       var countRow, countCol;
       for (countRow = 0; countRow < ROOM_HIG; countRow++) {
          this.tiles[countRow] = new Array(ROOM_WID);
          this.collision[countRow] = new Array(ROOM_WID);
          this.items.tiles[countRow] = new Array(ROOM_WID);
+         this.chests.tiles[countRow] = new Array(ROOM_WID);
          for (countCol = 0; countCol < ROOM_WID; countCol++) {
             this.tiles[countRow][countCol] = 0;
             this.items.tiles[countRow][countCol] = -1;
+            this.chests.tiles[countRow][countCol] = -1;
             if (countRow == 0)
                this.tiles[countRow][countCol] = 2;
             if (countRow == ROOM_HIG-1 || countCol == 0 || countCol == ROOM_WID-1)
@@ -311,6 +359,13 @@ Room = Class.create(Map, {
                if (this.tiles[countRow][countCol] == 0 && Math.floor(Math.random() * 100) == 0) {                    //***VARY***
                   this.items.tiles[countRow][countCol] = game.getRandomItem();
                }
+               else if (this.tiles[countRow][countCol] == 0 && Math.floor(Math.random() * 75) == 0 &&    //***VARY***
+                        this.tiles[countRow-1][countCol] != NORTH && this.tiles[countRow+1][countCol] != SOUTH &&
+                        this.tiles[countRow][countCol-1] != WEST && this.tiles[countRow][countCol+1] != EAST &&
+                        this.tiles[countRow][countCol-1] != DOWN && this.tiles[countRow][countCol+1] != UP) {   
+                  this.chests.tiles[countRow][countCol] = CHEST_CLOSED;
+                  this.collision[countRow][countCol] = 1;
+               }
             }
          }
       }
@@ -318,16 +373,12 @@ Room = Class.create(Map, {
       this.loadData(this.tiles);
       this.collisionData = this.collision;
       this.items.loadData(this.items.tiles);
+      this.chests.loadData(this.chests.tiles);
       
       /* These three fields keep track of the map topology */
       this.xRoom = x;
       this.yRoom = y;
       this.zRoom = z;
-   },
-   
-   onenterframe: function() {
-      if (this.age % game.fps == 0)
-         this.time++;
    },
    
    /* Change the collision data of one tile. col and row are tile indexes, not pixels. */
@@ -366,7 +417,7 @@ Room = Class.create(Map, {
       this.East = Math.floor(Math.random() * 3) > 0 ? true : false;
       this.West = Math.floor(Math.random() * 3) > 0 ? true : false;
       this.Up = this.Down = false;
-      if (Math.floor(Math.random() * 5) == 0 && sceneList.length > 1) {
+      if (Math.floor(Math.random() * 3) == 0 && sceneList.length > 1) {
          if (Math.floor(Math.random() * 2) == 0)
             this.Up = true;
          else
@@ -381,6 +432,7 @@ Room = Class.create(Map, {
       }
       else if (sceneList.length >= minRooms && exitPlaced == false && dir != UP && dir != DOWN) {
          this.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] = NEXT_LEVEL;
+         this.Up = this.Down = false;
          exitPlaced = true;
       }
             
@@ -407,7 +459,6 @@ Room = Class.create(Map, {
             this.West = scene;
       }
       if ((this.Up == true && dir != UP) || dir == DOWN) {
-         console.log("Creating stairs UP");
          this.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] = UP;
          this.tiles[(ROOM_HIG-1)/2-1][(ROOM_WID-1)/2] = 1;
          this.tiles[(ROOM_HIG-1)/2-1][(ROOM_WID-1)/2+1] = 1;
@@ -415,13 +466,11 @@ Room = Class.create(Map, {
          this.tiles[(ROOM_HIG-1)/2+1][(ROOM_WID-1)/2+1] = 2;
          this.tiles[(ROOM_HIG-1)/2+1][(ROOM_WID-1)/2] = 2;
          if (dir == DOWN) {
-            console.log("dir == DOWN");
             this.Up = scene;
             this.Down = false;
          }
       }
       if ((this.Down == true && dir != DOWN) || dir == UP) {
-         console.log("Creating stairs DOWN");
          this.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] = DOWN;
          this.tiles[(ROOM_HIG-1)/2-1][(ROOM_WID-1)/2] = 2;
          this.tiles[(ROOM_HIG-1)/2-1][(ROOM_WID-1)/2-1] = 1;
@@ -429,7 +478,6 @@ Room = Class.create(Map, {
          this.tiles[(ROOM_HIG-1)/2+1][(ROOM_WID-1)/2-1] = 2;
          this.tiles[(ROOM_HIG-1)/2+1][(ROOM_WID-1)/2] = 2;
          if (dir == UP) {
-            console.log("dir == UP");
             this.Down = scene;
             this.Up = false;
          }
@@ -788,13 +836,11 @@ Enemy = Class.create(Group, {
          }
          if (this.health <= 0) {
             metrics.dmgDealt += dmg + this.health;
-//             map.dmgDealt += dmg + this.health;
             this.health = 0;
             metrics.enemiesKilled++;
          }
          else if (dmg != -1) {
             metrics.dmgDealt += dmg;
-//             map.dmgDealt += dmg;
          }
             
       }
@@ -845,7 +891,8 @@ window.onload = function() {
       var controlsDetails = createLabel("W,A,S,D - Move<br>" +
                                         "I,J,K,L - Attack<br>" +
                                         "N - Use health potion<br>" +
-                                        "M - Swap item",
+                                        "M - Swap item<br>" +
+                                        "Space - Unlock chest",
                                         50, 110, "14px sans-serif");
       var controlsToMenu = createLabel("Press space to return to menu", 50, WINDOW-50, "14px sans-serif");
       
@@ -931,6 +978,7 @@ window.onload = function() {
          
       curScene.addChild(map);
       curScene.addChild(new Hud());
+      curScene.addChild(map.chests);
       curScene.addChild(map.items);
       curScene.addChild(new EnemyGroup(0, map, UP));
       curScene.addChild(player);      
@@ -982,6 +1030,7 @@ window.onload = function() {
          nextScene = new Scene();
          nextScene.addChild(nextRoom);
          nextScene.addChild(new Hud());
+         nextScene.addChild(nextRoom.chests);
          nextScene.addChild(nextRoom.items);
          nextScene.addChild(new EnemyGroup(5, nextRoom, dir));                                                          //***VARY***
          
@@ -1226,6 +1275,10 @@ window.onload = function() {
          map.items.tiles[player.y/GRID][player.x/GRID] = -1;
          player.numPotions++;
       }
+      else if (item == 4) {
+         map.items.tiles[player.y/GRID][player.x/GRID] = -1;
+         player.numKeys++;
+      }
       else if (item == 1)
          player.strength = 5;
       else if (item == 7)
@@ -1272,11 +1325,15 @@ window.onload = function() {
    /*
     * Returns the frame of a random item (change constants to vary probability)
     */
-   game.getRandomItem = function() {                                                                                 //***VARY***
+   game.getRandomItem = function() {                                                                       //***VARY***
       var itemFrame;
+   
       itemFrame = Math.floor(Math.random() * 14) + 7;
       itemFrame = Math.floor(itemFrame/7) * 7 + 0 + itemFrame % 2; // Change the itemFrame % # for a different range
-      itemFrame = Math.random() < 0.5 ? itemFrame : 0;
+      if (Math.random() < 0.4)
+         itemFrame = 4;
+      else
+         itemFrame = Math.random() < 0.5 ? itemFrame : 0;
       return itemFrame;
    },
    
@@ -1286,12 +1343,12 @@ window.onload = function() {
     * Parameters:
     *    str = strength stat of the attacker
     *    def = defense stat of the defender
-    *    accuracy = chance that the attacker will hit (out of 100)
+    *    accuracy = chance that the attacker will hit (0-1)
     */
    game.getDamage = function(str, def, accuracy) {
       var dmg = 0;
       var range = str/2 < 3 ? 3 : str/2;
-      if (Math.random() * 100 < accuracy) {
+      if (Math.random() < accuracy) {
          if (str > def)
             dmg = str + Math.floor(Math.random() * range) - def;
          else 

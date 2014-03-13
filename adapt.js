@@ -43,6 +43,7 @@ var Metrics = function() {
       this.dmgTakenPerEnemy = 0;
       this.dmgDealtPerEncounter = 0;
       this.dmgTakenPerEncounter = 0;
+      this.enemiesFoughtRatio = 0;
       this.killedToEncounteredRatio = 0;
       this.hitsPerKill = 0;
       this.accuracy = 0;
@@ -70,7 +71,8 @@ var Metrics = function() {
       this.dmgTakenPerEnemy = Math.round(this.dmgTaken / this.totalEnemies * 10) / 10;
       this.dmgDealtPerEncounter = Math.round(this.dmgDealt / this.enemyEncounters * 10) / 10;
       this.dmgTakenPerEncounter = Math.round(this.dmgTaken / this.enemyEncounters * 10) / 10;
-      this.killedToEncounteredRatio = Math.round(this.enemiesKilled / this.enemyEncounters * 10) / 10;
+      this.enemiesFoughtRatio = Math.round(this.enemyEncounters / this.totalEnemies *100)/ 100;
+      this.killedToEncounteredRatio = Math.round(this.enemiesKilled / this.enemyEncounters * 100) / 100;
       this.hitsPerKill = Math.round(this.enemyHits / this.enemiesKilled * 10) / 10;
       this.accuracy = Math.round(this.enemyHits / (this.enemyHits + this.enemyMisses) * 100) / 100;
       this.timePerRoom = Math.round(this.time / this.roomsVisited * 10) / 10;
@@ -107,6 +109,8 @@ var Metrics = function() {
       console.log("Damage taken per Enemy: " + this.dmgTakenPerEnemy);
       console.log("Damage dealt per Encounter: " + this.dmgDealtPerEncounter);
       console.log("Damage taken per Encounter: " + this.dmgTakenPerEncounter);
+      console.log("Percentage of enemies fought: " + this.enemiesFoughtRatio * 100 + "%");
+      console.log("Percentage of encountered enemies killed: " + this.killedToEncounteredRatio * 100 + "%");
       console.log("Sword hits per kill: " + this.hitsPerKill);
       console.log("Accuracy: " + this.accuracy * 100 + "%");
       console.log("Time per Room: " + this.timePerRoom);
