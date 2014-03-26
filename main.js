@@ -976,6 +976,12 @@ window.onload = function() {
       if (fromMenu)
          player = new Player(GRID*(ROOM_WID-1)/2, GRID*(ROOM_HIG-1)/2);
          
+      var randomNumber = Math.floor(Math.random() * 10000);
+      console.log("AUD Seed = " + randomNumber);
+      // Good songs: 9291, 660
+      aud.generatePattern(0.6, 0.3, 4, 4, randomNumber);
+      aud.togglePlay();
+         
       curScene.addChild(map);
       curScene.addChild(new Hud());
       curScene.addChild(map.chests);
@@ -1363,6 +1369,8 @@ window.onload = function() {
     *    died = True if the level was ended by the player dying.
     */
    game.endLevel = function(died) {
+      aud.togglePause();
+   
       metrics.calculateAverages();
       metrics.printMetrics();
    

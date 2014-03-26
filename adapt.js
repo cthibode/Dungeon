@@ -73,8 +73,8 @@ var Metrics = function() {
       this.dmgTakenPerEncounter = Math.round(this.dmgTaken / this.enemyEncounters * 10) / 10;
       this.enemiesFoughtRatio = Math.round(this.enemyEncounters / this.totalEnemies *100)/ 100;
       this.killedToEncounteredRatio = Math.round(this.enemiesKilled / this.enemyEncounters * 100) / 100;
-      this.hitsPerKill = Math.round(this.enemyHits / this.enemiesKilled * 10) / 10;
-      this.accuracy = Math.round(this.enemyHits / (this.enemyHits + this.enemyMisses) * 100) / 100;
+      this.hitsPerKill = this.enemiesKilled == 0 ? 0 : Math.round(this.enemyHits / this.enemiesKilled * 10) / 10;
+      this.accuracy = this.enemyHits == 0 && this.enemyMisses == 0 ? 0 : Math.round(this.enemyHits / (this.enemyHits + this.enemyMisses) * 100) / 100;
       this.timePerRoom = Math.round(this.time / this.roomsVisited * 10) / 10;
       this.stepsPerRoom = Math.round(this.stepsTaken / this.roomsVisited * 10) / 10;
    };
