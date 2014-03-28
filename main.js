@@ -206,20 +206,29 @@ Player = Class.create(Sprite, {
    },
    
    attack: function() {   
+      var swingSound;
       if (!this.isAttacking) {
          if (game.input.attackLeft) {
+            swingSound = game.assets['assets/sounds/sword_swing.wav'].clone();
+            swingSound.play();
             this.direction = P_LEFT;
             this.isAttacking = true;
          }
          else if (game.input.attackRight) {
+            swingSound = game.assets['assets/sounds/sword_swing.wav'].clone();
+            swingSound.play();
             this.direction = P_RIGHT;
             this.isAttacking = true;
          }
          else if (game.input.attackUp) {
+            swingSound = game.assets['assets/sounds/sword_swing.wav'].clone();
+            swingSound.play();
             this.direction = P_UP;
             this.isAttacking = true;
          }
          else if (game.input.attackDown) {
+            swingSound = game.assets['assets/sounds/sword_swing.wav'].clone();
+            swingSound.play();
             this.direction = P_DOWN;
             this.isAttacking = true;
          }
@@ -238,7 +247,7 @@ Player = Class.create(Sprite, {
       this.frame = this.direction * 9 + (this.walk == 3 ? 1 : this.walk);
       if (this.isMoving) {
          this.moveBy(this.vx, this.vy);
-
+         
          if (!(game.frame % 2)) {
             this.walk++;
             this.walk %= 4;
@@ -292,6 +301,8 @@ Player = Class.create(Sprite, {
    },
    
    takeDamage: function(dmg) {
+      var hitSound = game.assets['assets/sounds/grunt.wav'].clone();
+      hitSound.play();
       this.health -= dmg;
       if (this.health <= 0) {
          metrics.dmgTaken += dmg + this.health;
@@ -857,7 +868,11 @@ window.onload = function() {
                 "assets/images/hud.png",
                 "assets/images/items.png",
                 "assets/images/monster1.gif",
-                "assets/images/monster2.gif");
+                "assets/images/monster2.gif",
+                "assets/sounds/sword_swing.wav",
+                "assets/sounds/grunt.wav",
+                "assets/sounds/select1.wav",
+                "assets/sounds/select2.wav");
                 
    /* Bind keys (the numbers are ASCII values of the keys) */
    game.keybind(65, 'left');
@@ -901,8 +916,11 @@ window.onload = function() {
       controlsScene.addChild(controlsToMenu);
       
       controlsScene.addEventListener(Event.INPUT_START, function() {
-         if (game.input.select)
+         if (game.input.select) {
+            var newSound = game.assets['assets/sounds/select2.wav'].clone();
+            newSound.play();
             game.popScene();
+         }
       });
       
       /* Creating the credits screen */
@@ -919,13 +937,20 @@ window.onload = function() {
       creditsScene.addChild(creditsToMenu);
       
       creditsScene.addEventListener(Event.INPUT_START, function() {
-         if (game.input.select)
+         if (game.input.select) {
+            var newSound = game.assets['assets/sounds/select2.wav'].clone();
+            newSound.play();
             game.popScene();
+         }
       });
       
       /* Adding event listeners */
       game.rootScene.addEventListener(Event.INPUT_START, function() {
+         var newSound;
+      
          if (game.input.select) {
+            newSound = game.assets['assets/sounds/select2.wav'].clone();
+            newSound.play();
             if (newGame.color == "red")
                game.initLevel(true);
             else if (controls.color == "red")
@@ -934,6 +959,8 @@ window.onload = function() {
                game.pushScene(creditsScene);
          }
          else if (game.input.up || game.input.left) {
+            newSound = game.assets['assets/sounds/select1.wav'].clone();
+            newSound.play();
             if (newGame.color == "red") {
                newGame.color = "white";
                credits.color = "red";
@@ -948,6 +975,8 @@ window.onload = function() {
             }
          }
          else if (game.input.down || game.input.right) {
+            newSound = game.assets['assets/sounds/select1.wav'].clone();
+            newSound.play();
             if (newGame.color == "red") {
                newGame.color = "white";
                controls.color = "red";
@@ -1410,6 +1439,8 @@ window.onload = function() {
       
       results.addEventListener(Event.INPUT_START, function() {
          if (game.input.select) {
+            var newSound = game.assets['assets/sounds/select2.wav'].clone();
+            newSound.play();
             curScene = null;
             map = null;
             sceneList.splice(0, sceneList.length);

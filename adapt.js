@@ -48,6 +48,8 @@ var Metrics = function() {
       this.hitsPerKill = 0;
       this.accuracy = 0;
       this.stepsPerRoom = 0;
+      // Add more metrics about number of rooms visited in relation to the minimum number of rooms
+      // Add metrics relating to number of keys held, total chests, chests opened
    };
    
    /* 
