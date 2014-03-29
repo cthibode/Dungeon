@@ -15,8 +15,11 @@ var P_UP = 3;     /* These are the directions for the player */
 var P_DOWN = 0;
 var P_LEFT = 1;
 var P_RIGHT = 2;
-var CHEST_CLOSED = 2;   /* Frame numbers for closed/open chests */
+var CHEST_CLOSED = 2;   /* Frame numbers for items and chests */
 var CHEST_OPEN = 3;
+var POTION = 0;
+var KEY = 4
+var ORB = 6;
 var ENEMIES = 3   /* Index of the EnemyGroup child in the scene */
 
 /* These variables keep track of the current room's info. These are updated
@@ -74,11 +77,17 @@ Hud = Class.create(Group, {
       this.shield.x = 200;
       this.shield.y = game.height - GRID*2 + 10;
       
+      this.orb = new Sprite(GRID, GRID);
+      this.orb.image = game.assets["assets/images/items.png"];
+      this.orb.frame = -1;
+      this.orb.x = 285;
+      this.orb.y = game.height - GRID*2 + 10;
+      
       this.addChild(this.bg);
       this.addChild(this.stats1);
       this.addChild(this.weapon);
       this.addChild(this.shield);
-//       this.addChild(this.stats2);
+      this.addChild(this.orb);
       this.addChild(this.attack);
       this.addChild(this.defense);
    },
@@ -92,7 +101,8 @@ Hud = Class.create(Group, {
       this.shield.frame = player.shield;  
       this.attack.text = "Str: " + player.strength;
       this.defense.text = "Def: " + player.defense;
-
+      if (player.hasOrb)
+         this.orb.frame = ORB;
    }
 });
 
@@ -128,7 +138,11 @@ Player = Class.create(Sprite, {
       this.health = 100;
       this.maxHealth = 100;
       this.numPotions = 0;
-      this.numKeys = 1;
+      this.numKeys = 100;
+      
+      /* Variable to keep track if the player is holding the pearl/orb */
+      this.hasOrb = false;
+      this.seenOrb = false;
    },
    
    onenterframe: function() {
@@ -150,7 +164,7 @@ Player = Class.create(Sprite, {
       /* Check if picked up potion */
       var tileContents = map.items.checkTile(this.x, this.y);
       if (this.cooldown == 0 && game.input.swapItem && tileContents > 0 || 
-          tileContents == 0 || tileContents == 4) {
+          tileContents == POTION || tileContents == KEY || tileContents == ORB) {
          game.processPickup(tileContents);
          metrics.str = player.strength;
          metrics.def = player.defense;
@@ -178,25 +192,25 @@ Player = Class.create(Sprite, {
          if (player.direction == P_UP && map.chests.checkTile(this.x, this.y-GRID) == CHEST_CLOSED) {
             map.chests.tiles[(this.y-GRID)/GRID][this.x/GRID] = CHEST_OPEN;
             map.editCollision(this.x/GRID, (this.y-GRID)/GRID, 0);
-            map.items.tiles[(this.y-GRID)/GRID][this.x/GRID] = game.getRandomItem();
+            map.items.tiles[(this.y-GRID)/GRID][this.x/GRID] = game.getRandomItem(true);
             player.numKeys--;
          }
          else if (player.direction == P_DOWN && map.chests.checkTile(this.x, this.y+GRID) == CHEST_CLOSED) {
             map.chests.tiles[(this.y+GRID)/GRID][this.x/GRID] = CHEST_OPEN;
             map.editCollision(this.x/GRID, (this.y+GRID)/GRID, 0);
-            map.items.tiles[(this.y+GRID)/GRID][this.x/GRID] = game.getRandomItem();
+            map.items.tiles[(this.y+GRID)/GRID][this.x/GRID] = game.getRandomItem(true);
             player.numKeys--;
          }
          else if (player.direction == P_LEFT && map.chests.checkTile(this.x-GRID, this.y) == CHEST_CLOSED) {
             map.chests.tiles[this.y/GRID][(this.x-GRID)/GRID] = CHEST_OPEN;
             map.editCollision((this.x-GRID)/GRID, this.y/GRID, 0);
-            map.items.tiles[this.y/GRID][(this.x-GRID)/GRID] = game.getRandomItem();
+            map.items.tiles[this.y/GRID][(this.x-GRID)/GRID] = game.getRandomItem(true);
             player.numKeys--;
          }
          else if (player.direction == P_RIGHT && map.chests.checkTile(this.x+GRID, this.y) == CHEST_CLOSED) {
             map.chests.tiles[this.y/GRID][(this.x+GRID)/GRID] = CHEST_OPEN;
             map.editCollision((this.x+GRID)/GRID, this.y/GRID, 0);
-            map.items.tiles[this.y/GRID][(this.x+GRID)/GRID] = game.getRandomItem();
+            map.items.tiles[this.y/GRID][(this.x+GRID)/GRID] = game.getRandomItem(true);
             player.numKeys--;
          }
          
@@ -260,7 +274,7 @@ Player = Class.create(Sprite, {
             var dir = map.checkTile(this.x, this.y);
             if (dir == NORTH || dir == SOUTH || dir == EAST || dir == WEST || dir == UP || dir == DOWN)
                game.changeRoom(dir);
-            else if (dir == NEXT_LEVEL)   /* End the level */
+            else if (dir == NEXT_LEVEL && player.hasOrb)   /* End the level */
                game.endLevel(false);
          }
       } 
@@ -368,7 +382,7 @@ Room = Class.create(Map, {
             else {
                this.collision[countRow][countCol] = 0;
                if (this.tiles[countRow][countCol] == 0 && Math.floor(Math.random() * 100) == 0) {                    //***VARY***
-                  this.items.tiles[countRow][countCol] = game.getRandomItem();
+                  this.items.tiles[countRow][countCol] = game.getRandomItem(false);
                }
                else if (this.tiles[countRow][countCol] == 0 && Math.floor(Math.random() * 75) == 0 &&    //***VARY***
                         this.tiles[countRow-1][countCol] != NORTH && this.tiles[countRow+1][countCol] != SOUTH &&
@@ -727,7 +741,7 @@ Enemy = Class.create(Group, {
             if (this.sprite.opacity == 0) {
                map.editCollision(this.sprite.x/GRID, this.sprite.y/GRID, 0);
                if (Math.floor(Math.random() * 8) == 0) { // 1/8 chance of an item drop                                  //***VARY***
-                  map.items.tiles[this.sprite.y/GRID][this.sprite.x/GRID] = game.getRandomItem();
+                  map.items.tiles[this.sprite.y/GRID][this.sprite.x/GRID] = game.getRandomItem(false);
                   map.items.loadData(map.items.tiles);
                }
                this.parentNode.removeEnemy(this);
@@ -1007,7 +1021,6 @@ window.onload = function() {
          
       var randomNumber = Math.floor(Math.random() * 10000);
       console.log("AUD Seed = " + randomNumber);
-      // Good songs: 9291, 660
       aud.generatePattern(0.6, 0.3, 4, 4, randomNumber);
       aud.togglePlay();
          
@@ -1028,6 +1041,7 @@ window.onload = function() {
       else {
          game.replaceScene(curScene);
          player.direction = P_DOWN;
+         player.hasOrb = player.seenOrb = false;
       }
    }
    
@@ -1154,7 +1168,6 @@ window.onload = function() {
             if (toCheck.xRoom == nextRoom.xRoom && toCheck.yRoom == nextRoom.yRoom &&
                 toCheck.zRoom == nextRoom.zRoom+1) { /* Existing room above */
                if (toCheck.Down == true) {
-                  console.log("Existing room above, connected");
                   nextRoom.Up = sceneList[count];
                   
                   nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2, UP);
@@ -1181,7 +1194,6 @@ window.onload = function() {
                   toCheck.Down = nextScene;
                }
                else {
-                  console.log("Existing room above, not connected");
                   nextRoom.Up = false;
                   if (nextRoom.Down == false && nextRoom.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] != NEXT_LEVEL) {
                      nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2, 0);
@@ -1192,7 +1204,6 @@ window.onload = function() {
             if (toCheck.xRoom == nextRoom.xRoom && toCheck.yRoom == nextRoom.yRoom &&
                 toCheck.zRoom == nextRoom.zRoom-1) { /* Existing room below */
                if (toCheck.Up == true) {
-                  console.log("Existing room below, connected");
                   nextRoom.Down = sceneList[count];
                      
                   nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2, DOWN);
@@ -1219,7 +1230,6 @@ window.onload = function() {
                   toCheck.Up = nextScene;
                }
                else {
-                  console.log("Existing room below, not connected");
                   nextRoom.Down = false;
                   if (nextRoom.Up == false && nextRoom.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] != NEXT_LEVEL) {
                      nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2, 0);
@@ -1306,13 +1316,18 @@ window.onload = function() {
     *    item = frame number of the item that was picked up
     */
    game.processPickup = function(item) {
-      if (item == 0) {
+      if (item == POTION) {
          map.items.tiles[player.y/GRID][player.x/GRID] = -1;
          player.numPotions++;
       }
-      else if (item == 4) {
+      else if (item == KEY) {
          map.items.tiles[player.y/GRID][player.x/GRID] = -1;
          player.numKeys++;
+      }
+      else if (item == ORB) {
+         map.items.tiles[player.y/GRID][player.x/GRID] = -1;
+         player.hasOrb = true;
+         aud.adaptPattern(0.9, 0.7);
       }
       else if (item == 1)
          player.strength = 5;
@@ -1359,16 +1374,22 @@ window.onload = function() {
    
    /*
     * Returns the frame of a random item (change constants to vary probability)
+    * Parameters:
+    *    wantOrb = true if there is a possibility of returning the orb
     */
-   game.getRandomItem = function() {                                                                       //***VARY***
+   game.getRandomItem = function(wantOrb) {                                                                       //***VARY***
       var itemFrame;
    
       itemFrame = Math.floor(Math.random() * 14) + 7;
       itemFrame = Math.floor(itemFrame/7) * 7 + 0 + itemFrame % 2; // Change the itemFrame % # for a different range
-      if (Math.random() < 0.4)
-         itemFrame = 4;
+      if (wantOrb && !player.seenOrb && Math.random() < sceneList.length/minRooms) {
+         itemFrame = ORB;
+         player.seenOrb = true;
+      }
+      else if (Math.random() < 0.4)
+         itemFrame = KEY;
       else
-         itemFrame = Math.random() < 0.5 ? itemFrame : 0;
+         itemFrame = Math.random() < 0.4 ? itemFrame : POTION;
       return itemFrame;
    },
    
@@ -1398,7 +1419,8 @@ window.onload = function() {
     *    died = True if the level was ended by the player dying.
     */
    game.endLevel = function(died) {
-      aud.togglePause();
+      if (aud.isPlaying()) 
+         aud.togglePause();
    
       metrics.calculateAverages();
       metrics.printMetrics();
@@ -1407,13 +1429,10 @@ window.onload = function() {
       results.backgroundColor = "black"
       
       var title;
-      if (died) {
+      if (died)
          title = createLabel("GAME OVER", 130, 10, "16px sans-serif");
-      }
-      else {
+      else
          title = createLabel("LEVEL COMPLETE", 100, 10, "16px sans-serif");
-      }
-      
       
       var metricLabel = createLabel("Strength: " + metrics.str + "<br>" +
                                     "Strength change: " + (metrics.str-metrics.strAtStart) + "<br>" +
