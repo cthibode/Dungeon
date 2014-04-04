@@ -4,22 +4,30 @@ var GRID = 32;
 var WINDOW = 352;
 var ROOM_WID = 11; /* Keep these two values odd */
 var ROOM_HIG = 9;
-var NORTH = 8;    /* These are the tile numbers for the different exits */
+
+var NORTH = 8;    /* Tile numbers for the different exits */
 var SOUTH = 9;
 var EAST = 10;
 var WEST = 11;
 var DOWN = 4;
 var UP = 5;
 var NEXT_LEVEL = 7;
-var P_UP = 3;     /* These are the directions for the player */
+
+var P_UP = 3;     /* Directions for the player */
 var P_DOWN = 0;
 var P_LEFT = 1;
 var P_RIGHT = 2;
+
 var CHEST_CLOSED = 2;   /* Frame numbers for items and chests */
 var CHEST_OPEN = 3;
 var POTION = 0;
 var KEY = 4
 var ORB = 6;
+
+var NO_ABILITY = 1;     /* Constants for sword abilities */
+var ICE_ABILITY = 2;
+var POISON_ABILITY = 3;
+
 var ENEMIES = 3   /* Index of the EnemyGroup child in the scene */
 
 /* These variables keep track of the current room's info. These are updated
@@ -83,6 +91,14 @@ Hud = Class.create(Group, {
       this.orb.x = 285;
       this.orb.y = game.height - GRID*2 + 10;
       
+      /* Dialogue box testing */
+//       this.dialogue = new Sprite(WINDOW, 50)
+//       this.dialogue.image = game.assets["assets/images/dialogue.png"];
+//       this.addChild(this.dialogue);
+//       this.testlabel = createLabel("weeeeeeeeeeeeeeeeeeeeeeeeeeee<br>I hope this all fits in the text box!", 20, 10);
+//       this.testlabel.textAlign = "center";
+//       this.addChild(this.testlabel);
+      
       this.addChild(this.bg);
       this.addChild(this.stats1);
       this.addChild(this.weapon);
@@ -138,7 +154,12 @@ Player = Class.create(Sprite, {
       this.health = 100;
       this.maxHealth = 100;
       this.numPotions = 0;
-      this.numKeys = 100;
+      this.numKeys = 1;
+      
+      /* Character stats only altered by swords */
+      this.walkSpeed = 4;
+      this.swingSpeed = 5;
+      this.ability = NO_ABILITY;
       
       /* Variable to keep track if the player is holding the pearl/orb */
       this.hasOrb = false;
@@ -250,7 +271,7 @@ Player = Class.create(Sprite, {
 
       if (this.isAttacking) {
          this.frame = this.direction * 9 + 6 + (this.attackCounter > 2 ? 2 : this.attackCounter);
-         if (++this.attackCounter > 5) {
+         if (++this.attackCounter > this.swingSpeed) {
             this.attackCounter = 0;
             this.isAttacking = false;
          }
@@ -283,22 +304,22 @@ Player = Class.create(Sprite, {
          if (game.input.left) {
             this.direction = P_LEFT;
             if (!map.hitTest(this.x + this.width/2 - GRID, this.y))
-               this.vx = -4;
+               this.vx = -this.walkSpeed;
          } 
          else if (game.input.right) {
             this.direction = P_RIGHT;
             if (!map.hitTest(this.x + this.width/2 + GRID, this.y))
-               this.vx = 4;
+               this.vx = this.walkSpeed;
          } 
          else if (game.input.up) {
             this.direction = P_UP;
             if (!map.hitTest(this.x, this.y + this.height/2 - GRID))
-               this.vy = -4;
+               this.vy = -this.walkSpeed;
          }
          else if (game.input.down) {
             this.direction = P_DOWN;
             if (!map.hitTest(this.x, this.y + this.height/2 + GRID))
-               this.vy = 4;
+               this.vy = this.walkSpeed;
          }
          else {
             this.walk = 1;
@@ -581,6 +602,36 @@ Room = Class.create(Map, {
 
       if (numAttempt < 5)     /* Only add the obstacles if a path was found */
          this.tiles = tempTiles;
+   },
+   
+   createFirstRoom: function() {
+      var countRow, countCol;
+   
+      for (countRow = 0; countRow < ROOM_HIG-1; countRow++) {
+         for (countCol = 1; countCol < ROOM_WID-1; countCol++) {
+            if (countRow == 0 && this.tiles[countRow][countCol] == 1)
+               this.tiles[countRow][countCol] = 2;
+            else if (countRow != 0) {
+               this.tiles[countRow][countCol] = 0;
+               this.items.tiles[countRow][countCol] = -1;
+               this.chests.tiles[countRow][countCol] = -1;
+               this.collision[countRow][countCol] = 0;
+            }
+         }
+      }
+      
+      this.items.tiles[2][3] = 8;
+      this.items.tiles[2][5] = 9;
+      this.items.tiles[2][7] = 10;
+      this.items.tiles[4][3] = 7;
+      this.items.tiles[6][3] = 11;
+      this.items.tiles[6][5] = 12;
+      this.items.tiles[6][7] = 13;
+      
+      this.loadData(this.tiles);
+      this.collisionData = this.collision;
+      this.items.loadData(this.items.tiles);
+      this.chests.loadData(this.chests.tiles);
    }
    
 });
@@ -658,6 +709,8 @@ Enemy = Class.create(Group, {
    initialize: function(x, y, room, type) {
       Group.call(this);
       
+      this.type = type;
+      
       this.sprite = new Sprite(GRID, GRID);
       this.sprite.image = game.assets["assets/images/" + type];
       this.sprite.x = x;
@@ -698,6 +751,11 @@ Enemy = Class.create(Group, {
       this.pathFinder = new EasyStar.js();
       this.pathFinder.setAcceptableTiles([0]);
 
+      /* Sword effect fields */
+      this.effect = NO_ABILITY;
+      this.effectTimer = 0;
+      this.poisonTimer = 0;
+
       /* Metric helper fields */
       this.hadEncounter = false;
    },
@@ -723,6 +781,20 @@ Enemy = Class.create(Group, {
             }
          }
          else if (this.health >= 0) {    
+            if (this.effect != NO_ABILITY) {
+               if (--this.effectTimer == 0) {
+                  if (this.effect == ICE_ABILITY)
+                     this.speed *= 2;
+                  this.sprite.image = game.assets["assets/images/" + this.type];
+                  this.sprite.frame = [2, 2, 3, 3, 4, 4, 3, 3];
+                  this.effect = NO_ABILITY;
+               }
+               else if (this.effect == POISON_ABILITY && --this.poisonTimer == 0) {
+                  this.health -= 1;
+                  this.poisonTimer = game.fps;
+               }
+            }
+            
             this.turnTime++;
             this.checkHit();
             this.hpDisplay.text = this.health + "/" + this.maxHealth;
@@ -850,6 +922,29 @@ Enemy = Class.create(Group, {
              (player.direction == P_DOWN && this.sprite.x == player.x && this.sprite.y == player.y+GRID)) {
             dmg = game.getDamage(player.strength, this.defense, player.accuracy);
             this.health -= dmg
+            
+            if (player.ability == ICE_ABILITY) {
+               if (this.effect == NO_ABILITY) {
+                  this.sprite.frame = [2, 2, 2, 3, 3, 3, 4, 4, 4, 3, 3, 3];
+                  this.speed /= 2;
+               }
+               this.effect = ICE_ABILITY;
+               this.effectTimer = game.fps * 4;
+               if (this.type == "monster1.gif")
+                  this.sprite.image = game.assets["assets/images/monster1slow.gif"];
+               else if (this.type == "monster2.gif")
+                  this.sprite.image = game.assets["assets/images/monster2slow.gif"];
+            }
+            else if (player.ability == POISON_ABILITY) {
+               this.effect = POISON_ABILITY;
+               this.poisonTimer = game.fps;
+               this.effectTimer = game.fps * 4;
+               if (this.type == "monster1.gif")
+                  this.sprite.image = game.assets["assets/images/monster1poison.gif"];
+               else if (this.type == "monster2.gif")
+                  this.sprite.image = game.assets["assets/images/monster2poison.gif"];
+            }
+            
             if (dmg == 0) 
                metrics.enemyMisses++;
             else
@@ -858,16 +953,16 @@ Enemy = Class.create(Group, {
                metrics.enemyEncounters++;
                this.hadEncounter = true;
             }
-         }
-         if (this.health <= 0) {
-            metrics.dmgDealt += dmg + this.health;
-            this.health = 0;
-            metrics.enemiesKilled++;
-         }
-         else if (dmg != -1) {
-            metrics.dmgDealt += dmg;
-         }
-            
+         }  
+      }
+      
+      if (this.health <= 0) {
+         metrics.dmgDealt += dmg + this.health;
+         this.health = 0;
+         metrics.enemiesKilled++;
+      }
+      else if (dmg != -1) {
+         metrics.dmgDealt += dmg;
       }
    }
 });
@@ -883,6 +978,11 @@ window.onload = function() {
                 "assets/images/items.png",
                 "assets/images/monster1.gif",
                 "assets/images/monster2.gif",
+                "assets/images/monster1slow.gif",
+                "assets/images/monster2slow.gif",
+                "assets/images/monster1poison.gif",
+                "assets/images/monster2poison.gif",
+                "assets/images/dialogue.png",
                 "assets/sounds/sword_swing.wav",
                 "assets/sounds/grunt.wav",
                 "assets/sounds/select1.wav",
@@ -1037,6 +1137,7 @@ window.onload = function() {
       
       if (fromMenu) {
          game.pushScene(curScene);
+         map.createFirstRoom();
       }
       else {
          game.replaceScene(curScene);
@@ -1329,23 +1430,71 @@ window.onload = function() {
          player.hasOrb = true;
          aud.adaptPattern(0.9, 0.7);
       }
-      else if (item == 1)
+      else if (item == 1) {   // Default sword
          player.strength = 5;
-      else if (item == 7)
-         player.strength = 6;
-      else if (item == 8)
-         player.strength = 8;
-      else if (item == 9)
+         player.defense = 0;
+         player.walkSpeed = 4;
+         player.swingSpeed = 5;
+         player.maxHealth = 100;
+         player.ability = NO_ABILITY;
+      }
+      else if (item == 7) {   // Normal sword
+         player.strength = 7;
+         player.defense = 0;
+         player.walkSpeed = 4;
+         player.swingSpeed = 5;
+         player.maxHealth = 100;
+         player.ability = NO_ABILITY;
+      }
+      else if (item == 8) {   // Ice sword
+         player.strength = 7;
+         player.defense = 0;
+         player.walkSpeed = 4;
+         player.swingSpeed = 5;
+         player.maxHealth = 75;
+         player.ability = ICE_ABILITY;
+      }
+      else if (item == 9) {   // Earth sword
+         player.strength = 7;
+         player.defense = 3;
+         player.walkSpeed = 2;
+         player.swingSpeed = 8;
+         player.maxHealth = 100;
+         player.ability = NO_ABILITY;
+      }
+      else if (item == 10) {  // Light sword
+         player.strength = 3;
+         player.defense = 0;
+         player.walkSpeed = 8;
+         player.swingSpeed = 5;
+         player.maxHealth = 100;
+         player.ability = NO_ABILITY;
+      }
+      else if (item == 11) {  // Fire sword
          player.strength = 10;
-      else if (item == 10)
-         player.strength = 12;
-      else if (item == 11)
-         player.strength = 15;
-      else if (item == 12)
-         player.strength = 18;
-      else if (item == 13)
-         player.strength = 21;
-      else if (item == 14)
+         player.defense = -2;
+         player.walkSpeed = 4;
+         player.swingSpeed = 5;
+         player.maxHealth = 90;
+         player.ability = NO_ABILITY;
+      }
+      else if (item == 12) {  // Poison sword
+         player.strength = 2;
+         player.defense = 0;
+         player.walkSpeed = 4;
+         player.swingSpeed = 5;
+         player.maxHealth = 100;
+         player.ability = POISON_ABILITY;
+      }
+      else if (item == 13) {  // Water sword
+         player.strength = 7;
+         player.defense = 0;
+         player.walkSpeed = 4;
+         player.swingSpeed = 5;
+         player.maxHealth = 100;
+         player.ability = NO_ABILITY;
+      }
+      else if (item == 14)    // Shields
          player.defense = 1;
       else if (item == 15)
          player.defense = 2;
@@ -1359,6 +1508,9 @@ window.onload = function() {
          player.defense = 12;
       else if (item == 20)
          player.defense = 15;
+         
+      if (player.health > player.maxHealth)
+         player.health = player.maxHealth;
          
       if (item >= 7 && item < 14 || item == 1) {
          map.items.tiles[player.y/GRID][player.x/GRID] = player.sword;
