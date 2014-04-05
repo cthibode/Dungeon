@@ -91,14 +91,6 @@ Hud = Class.create(Group, {
       this.orb.x = 285;
       this.orb.y = game.height - GRID*2 + 10;
       
-      /* Dialogue box testing */
-//       this.dialogue = new Sprite(WINDOW, 50)
-//       this.dialogue.image = game.assets["assets/images/dialogue.png"];
-//       this.addChild(this.dialogue);
-//       this.testlabel = createLabel("weeeeeeeeeeeeeeeeeeeeeeeeeeee<br>I hope this all fits in the text box!", 20, 10);
-//       this.testlabel.textAlign = "center";
-//       this.addChild(this.testlabel);
-      
       this.addChild(this.bg);
       this.addChild(this.stats1);
       this.addChild(this.weapon);
@@ -122,6 +114,46 @@ Hud = Class.create(Group, {
    }
 });
 
+/* 
+ * The TextBox class is used to display information about items to the player.
+ * Parameters:
+ *    playerY = the Y position of the player, in number of tiles.
+ *    itemNum = the frame number of the item to describe.
+ */
+TextBox = Class.create(Group, {
+   initialize: function(playerY, itemNum) {
+      Group.call(this);
+      
+      this.sprite = new Sprite(WINDOW, 50);
+      this.sprite.image = game.assets["assets/images/dialogue.png"];
+      this.sprite.y = playerY < 4 ? game.height - GRID*2 - 50 : 0;
+      this.addChild(this.sprite);
+      
+      this.desc = createLabel("", 20, this.sprite.y + 10, "13px sans-serif");
+      this.desc.textAlign = "center";
+      this.changeText(itemNum);
+      this.addChild(this.desc);
+   },
+   
+   changeText: function(itemNum) {
+      if (itemNum == 1)
+         this.desc.text = "Butter Knife: It's good for toast!";
+      else if (itemNum == 7)
+         this.desc.text = "Steel sword: Average attack";
+      else if (itemNum == 8)
+         this.desc.text = "Sword of Ice: Average attack, Reduces health,<br>Slows enemies on hit";
+      else if (itemNum == 9)
+         this.desc.text = "Sword of Earth: Average attack, Increases defense, Reduces walking speed and attack speed";
+      else if (itemNum == 10)
+         this.desc.text = "Sword of Light: Low attack, Increases walking<br>speed";
+      else if (itemNum == 11)
+         this.desc.text = "Sword of Fire: High attack, Reduces defense,<br>Slightly reduces health";
+      else if (itemNum == 12)
+         this.desc.text = "Sword of Poison: Low attack, Poisons enemies<br>on hit";
+      else if (itemNum == 13)
+         this.desc.text = "Sword of Water: ...I don't know yet...";
+   }
+});
 
 /*
  * The Player class keeps track of the character stats and animates and moves
@@ -147,7 +179,7 @@ Player = Class.create(Sprite, {
       
       /* Character stats */
       this.sword = 1;                                                                                                //***VARY***
-      this.strength = 5;
+      this.strength = 3;
       this.shield = -1;
       this.defense = 0;
       this.accuracy = 0.8;
@@ -172,6 +204,7 @@ Player = Class.create(Sprite, {
       if (!this.isMoving)
          this.attack();
       if (!this.isAttacking && !this.isMoving) {
+         this.checkTextBox();
          this.checkItem();
          this.checkChest();
       }
@@ -181,9 +214,22 @@ Player = Class.create(Sprite, {
          metrics.updateAvgHealthPerSec(this.health);
    },
    
-   checkItem: function() {
-      /* Check if picked up potion */
+   /* Add a text box if the player is standing on an item */
+   checkTextBox: function() {
       var tileContents = map.items.checkTile(this.x, this.y);
+      
+      if (curScene.lastChild == player && (tileContents >= 7 && tileContents < 14 || tileContents == 1))
+         curScene.addChild(new TextBox(this.y/GRID, tileContents));
+      else if (curScene.lastChild != player && tileContents < 0)
+         curScene.removeChild(curScene.lastChild);
+      else if (curScene.lastChild != player && (tileContents >= 7 && tileContents < 14 || tileContents == 1))
+         curScene.lastChild.changeText(tileContents);
+   },
+   
+   /* Process item pickups */
+   checkItem: function() {
+      var tileContents = map.items.checkTile(this.x, this.y);
+      
       if (this.cooldown == 0 && game.input.swapItem && tileContents > 0 || 
           tileContents == POTION || tileContents == KEY || tileContents == ORB) {
          game.processPickup(tileContents);
@@ -192,7 +238,7 @@ Player = Class.create(Sprite, {
          metrics.potionsHeld = player.numPotions;
          this.cooldown = 5;
       }
-      if (this.cooldown == 0 && game.input.usePotion && player.numPotions > 0 && 
+      else if (this.cooldown == 0 && game.input.usePotion && player.numPotions > 0 && 
           player.health != player.maxHealth) {
          player.numPotions--;
          player.health = player.health+20 > player.maxHealth ? player.maxHealth : player.health+20;                  //***CHANGE***
@@ -202,9 +248,9 @@ Player = Class.create(Sprite, {
          if (player.health > metrics.maxHealth)
             metrics.maxHealth = player.health;
             
-         this.cooldown = 5;                                                                                          //***VARY***
+         this.cooldown = 5;
       }
-      if (this.cooldown > 0)
+      else if (this.cooldown > 0)
          this.cooldown--;
    },
    
@@ -1431,7 +1477,7 @@ window.onload = function() {
          aud.adaptPattern(0.9, 0.7);
       }
       else if (item == 1) {   // Default sword
-         player.strength = 5;
+         player.strength = 3;
          player.defense = 0;
          player.walkSpeed = 4;
          player.swingSpeed = 5;
