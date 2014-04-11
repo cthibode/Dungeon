@@ -1,9 +1,14 @@
 enchant();
 
 var GRID = 32;
-var WINDOW = 352;
-var ROOM_WID = 11; /* Keep these two values odd */
-var ROOM_HIG = 9;
+var WINDOW = GRID * 17;
+
+var ROOM_WID_INIT = 11; /* Room Dimensions */
+var ROOM_HIG_INIT = 9;
+var ROOM_WID_MAX = 17;
+var ROOM_HIG_MAX = 15;
+var ROOM_WID_MIN = 7;
+var ROOM_HIG_MIN = 7;
 
 var NORTH = 8;    /* Tile numbers for the different exits */
 var SOUTH = 9;
@@ -59,36 +64,36 @@ var createLabel = function(text, x, y, font, color) {
 Hud = Class.create(Group, {
    initialize: function() {
       Group.call(this);
-      this.bg = new Sprite(WINDOW, GRID*2);
+      this.bg = new Sprite(GRID * ROOM_WID_INIT, GRID*2);
       this.bg.image = game.assets["assets/images/hud.png"];
-      this.bg.x = 0;
+      this.bg.x = WINDOW/2 - this.bg.width/2;
       this.bg.y = game.height - GRID*2;
       
       this.stats1 = createLabel("Health: " + player.health + "/" + player.maxHealth + "<br>" +
                                 "Health Potions x " + player.numPotions + "<br>" +
-                                "Keys x " + player.numKeys, 5, this.bg.y+5, "14px sans-serif");
+                                "Keys x " + player.numKeys, this.bg.x + 5, this.bg.y + 5, "14px sans-serif");
                                 
-      this.attack = createLabel("Str: " + player.strength, 245, game.height - GRID*2 + 10, "10px sans-serif");
-      this.defense = createLabel("Def: " + player.defense, 245, this.attack.y + 15, "10px sans-serif");
+      this.attack = createLabel("Str: " + player.strength, this.bg.x + 245, game.height - GRID*2 + 10, "10px sans-serif");
+      this.defense = createLabel("Def: " + player.defense, this.bg.x + 245, this.attack.y + 15, "10px sans-serif");
 //       this.stats2 = createLabel("Str: " + player.strength + "<br>" + "Def: " + player.defense,
 //                                 245, game.height - GRID*2 + 10, "10px sans-serif");
       
       this.weapon = new Sprite(GRID, GRID);
       this.weapon.image = game.assets["assets/images/items.png"];
       this.weapon.frame = player.sword;
-      this.weapon.x = 150;
+      this.weapon.x = this.bg.x + 150;
       this.weapon.y = game.height - GRID*2 + 10;
       
       this.shield = new Sprite(GRID, GRID);
       this.shield.image = game.assets["assets/images/items.png"];
       this.shield.frame = player.shield;
-      this.shield.x = 200;
+      this.shield.x = this.bg.x + 200;
       this.shield.y = game.height - GRID*2 + 10;
       
       this.orb = new Sprite(GRID, GRID);
       this.orb.image = game.assets["assets/images/items.png"];
       this.orb.frame = -1;
-      this.orb.x = 285;
+      this.orb.x = this.bg.x + 285;
       this.orb.y = game.height - GRID*2 + 10;
       
       this.addChild(this.bg);
@@ -124,12 +129,13 @@ TextBox = Class.create(Group, {
    initialize: function(playerY, itemNum) {
       Group.call(this);
       
-      this.sprite = new Sprite(WINDOW, 50);
+      this.sprite = new Sprite(GRID * ROOM_WID_INIT, 50);
       this.sprite.image = game.assets["assets/images/dialogue.png"];
-      this.sprite.y = playerY < 4 ? game.height - GRID*2 - 50 : 0;
+      this.sprite.x = WINDOW/2 - this.sprite.width/2;
+      this.sprite.y = playerY < ROOM_HIG_MAX/4 ? game.height - GRID*2 - 50 : 0;
       this.addChild(this.sprite);
       
-      this.desc = createLabel("", 20, this.sprite.y + 10, "13px sans-serif");
+      this.desc = createLabel("", this.sprite.x + 20, this.sprite.y + 10, "13px sans-serif");
       this.desc.textAlign = "center";
       this.changeText(itemNum);
       this.addChild(this.desc);
@@ -258,25 +264,25 @@ Player = Class.create(Sprite, {
       if (game.input.select && player.numKeys > 0) {
          if (player.direction == P_UP && map.chests.checkTile(this.x, this.y-GRID) == CHEST_CLOSED) {
             map.chests.tiles[(this.y-GRID)/GRID][this.x/GRID] = CHEST_OPEN;
-            map.editCollision(this.x/GRID, (this.y-GRID)/GRID, 0);
+            map.editCollision((this.y-GRID)/GRID, this.x/GRID, 0);
             map.items.tiles[(this.y-GRID)/GRID][this.x/GRID] = game.getRandomItem(true);
             player.numKeys--;
          }
          else if (player.direction == P_DOWN && map.chests.checkTile(this.x, this.y+GRID) == CHEST_CLOSED) {
             map.chests.tiles[(this.y+GRID)/GRID][this.x/GRID] = CHEST_OPEN;
-            map.editCollision(this.x/GRID, (this.y+GRID)/GRID, 0);
+            map.editCollision((this.y+GRID)/GRID, this.x/GRID, 0);
             map.items.tiles[(this.y+GRID)/GRID][this.x/GRID] = game.getRandomItem(true);
             player.numKeys--;
          }
          else if (player.direction == P_LEFT && map.chests.checkTile(this.x-GRID, this.y) == CHEST_CLOSED) {
             map.chests.tiles[this.y/GRID][(this.x-GRID)/GRID] = CHEST_OPEN;
-            map.editCollision((this.x-GRID)/GRID, this.y/GRID, 0);
+            map.editCollision(this.y/GRID, (this.x-GRID)/GRID, 0);
             map.items.tiles[this.y/GRID][(this.x-GRID)/GRID] = game.getRandomItem(true);
             player.numKeys--;
          }
          else if (player.direction == P_RIGHT && map.chests.checkTile(this.x+GRID, this.y) == CHEST_CLOSED) {
             map.chests.tiles[this.y/GRID][(this.x+GRID)/GRID] = CHEST_OPEN;
-            map.editCollision((this.x+GRID)/GRID, this.y/GRID, 0);
+            map.editCollision(this.y/GRID, (this.x+GRID)/GRID, 0);
             map.items.tiles[this.y/GRID][(this.x+GRID)/GRID] = game.getRandomItem(true);
             player.numKeys--;
          }
@@ -407,34 +413,55 @@ Player = Class.create(Sprite, {
  */
 Room = Class.create(Map, {
    initialize: function(dir, scene, x, y, z) {
+      if (dir == null) {
+         this.roomWidth = ROOM_WID_INIT;
+         this.roomHeight = ROOM_HIG_INIT;
+      }
+      else {
+         this.roomWidth = Math.floor(Math.random() * (ROOM_WID_MAX - ROOM_WID_MIN + 1)) + ROOM_WID_MIN;
+         this.roomHeight = Math.floor(Math.random() * (ROOM_HIG_MAX - ROOM_HIG_MIN + 1)) + ROOM_HIG_MIN;
+         if (this.roomWidth % 2 == 0)
+            this.roomWidth += Math.random() < 0.5 ? 1 : -1;
+         if (this.roomHeight % 2 == 0)
+            this.roomHeight += Math.random() > 0.5 ? 1 : -1;
+      }
+      
       Map.call(this, GRID, GRID);
       this.image = game.assets["assets/images/map.png"];
-      this.tiles = new Array(ROOM_HIG);
-      this.collision = new Array(ROOM_HIG);
+      this.tiles = new Array(ROOM_HIG_MAX);
+      this.collision = new Array(ROOM_HIG_MAX);
       
       this.items = new Map(GRID, GRID);
       this.items.image = game.assets["assets/images/items.png"];
-      this.items.tiles = new Array(ROOM_HIG);
+      this.items.tiles = new Array(ROOM_HIG_MAX);
       
       this.chests = new Map(GRID, GRID);
       this.chests.image = game.assets["assets/images/items.png"];
-      this.chests.tiles = new Array(ROOM_HIG);
+      this.chests.tiles = new Array(ROOM_HIG_MAX);
+      
+      /* Row and column numbers for the four walls */
+      this.wallN = (ROOM_HIG_MAX-this.roomHeight)/2;
+      this.wallS = (ROOM_HIG_MAX-this.roomHeight)/2 + this.roomHeight - 1;
+      this.wallW = (ROOM_WID_MAX-this.roomWidth)/2;
+      this.wallE = (ROOM_WID_MAX-this.roomWidth)/2 + this.roomWidth - 1;
       
       /* Set base tiles (floor and walls) */
       var countRow, countCol;
-      for (countRow = 0; countRow < ROOM_HIG; countRow++) {
-         this.tiles[countRow] = new Array(ROOM_WID);
-         this.collision[countRow] = new Array(ROOM_WID);
-         this.items.tiles[countRow] = new Array(ROOM_WID);
-         this.chests.tiles[countRow] = new Array(ROOM_WID);
-         for (countCol = 0; countCol < ROOM_WID; countCol++) {
-            this.tiles[countRow][countCol] = 0;
-            this.items.tiles[countRow][countCol] = -1;
-            this.chests.tiles[countRow][countCol] = -1;
-            if (countRow == 0)
-               this.tiles[countRow][countCol] = 2;
-            if (countRow == ROOM_HIG-1 || countCol == 0 || countCol == ROOM_WID-1)
-               this.tiles[countRow][countCol] = 1;
+      for (countRow = 0; countRow < ROOM_HIG_MAX; countRow++) {
+         this.tiles[countRow] = new Array(ROOM_WID_MAX);
+         this.collision[countRow] = new Array(ROOM_WID_MAX);
+         this.items.tiles[countRow] = new Array(ROOM_WID_MAX);
+         this.chests.tiles[countRow] = new Array(ROOM_WID_MAX);
+         for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
+            if (countRow >= this.wallN && countRow <= this.wallS && countCol >= this.wallW && countCol <= this.wallE) {
+               this.tiles[countRow][countCol] = 0;
+               this.items.tiles[countRow][countCol] = -1;
+               this.chests.tiles[countRow][countCol] = -1;
+               if (countRow == this.wallN)
+                  this.tiles[countRow][countCol] = 2;
+               if (countRow == this.wallS || countCol == this.wallW || countCol == this.wallE)
+                  this.tiles[countRow][countCol] = 1;
+            }
          }
       }
       /* Add exits and obstacles to the room */
@@ -442,8 +469,8 @@ Room = Class.create(Map, {
       this.makeObstacles();
       
       /* Set collision data */
-      for (countRow = 0; countRow < ROOM_HIG; countRow++) {
-         for (countCol = 0; countCol < ROOM_WID; countCol++) {
+      for (countRow = 0; countRow < ROOM_HIG_MAX; countRow++) {
+         for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
             if (this.tiles[countRow][countCol] == 1 || this.tiles[countRow][countCol] == 2)
                this.collision[countRow][countCol] = 1;
             else {
@@ -474,16 +501,16 @@ Room = Class.create(Map, {
    },
    
    /* Change the collision data of one tile. col and row are tile indexes, not pixels. */
-   editCollision: function(col, row, newVal) {
-      if (col >= 0 && col < ROOM_WID && row >= 0 && row < ROOM_HIG) {
+   editCollision: function(row, col, newVal) {
+      if (col >= 0 && col < ROOM_WID_MAX && row >= 0 && row < ROOM_HIG_MAX) {
          this.collision[row][col] = newVal;
          this.collisionData = this.collision;
       }
    },
    
    /* Change the frame of one tile. col and row are tile indexes, not pixels. */
-   editTile: function(col, row, newVal) {
-      if (col >= 0 && col < ROOM_WID && row >= 0 && row < ROOM_HIG) {
+   editTile: function(row, col, newVal) {
+      if (col >= 0 && col < ROOM_WID_MAX && row >= 0 && row < ROOM_HIG_MAX) {
          this.tiles[row][col] = newVal;
          this.loadData(this.tiles);
       }
@@ -491,12 +518,12 @@ Room = Class.create(Map, {
    
    fixObstacleBlocks: function() {
       var countRow, countCol;
-      for (countRow = 0; countRow < ROOM_HIG; countRow++) {
-         for (countCol = 0; countCol < ROOM_WID; countCol++) {
-            if (countRow > 0 && this.tiles[countRow-1][countCol] == 2 &&
+      for (countRow = this.wallN+1; countRow <= this.wallS; countRow++) {
+         for (countCol = this.wallW; countCol <= this.wallE; countCol++) {
+            if (this.tiles[countRow-1][countCol] == 2 && 
                 (this.tiles[countRow][countCol] == 1 || this.tiles[countRow][countCol] == 2))
                this.tiles[countRow-1][countCol] = 1;
-            if (countRow > 0 && this.tiles[countRow-1][countCol] == 1 && this.tiles[countRow][countCol] == 0)
+            else if (this.tiles[countRow-1][countCol] == 1 && this.tiles[countRow][countCol] == 0)
                this.tiles[countRow-1][countCol] = 2;
          }
       }
@@ -523,52 +550,52 @@ Room = Class.create(Map, {
          this.North = this.South = this.East = this.West = false;
       }
       else if (sceneList.length >= minRooms && exitPlaced == false && dir != UP && dir != DOWN) {
-         this.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] = NEXT_LEVEL;
+         this.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2] = NEXT_LEVEL;
          this.Up = this.Down = false;
          exitPlaced = true;
       }
             
       if (this.North == true || dir == SOUTH) {
-         this.tiles[0][(ROOM_WID-1)/2] = NORTH;
+         this.tiles[this.wallN][(ROOM_WID_MAX-1)/2] = NORTH;
          if (dir == SOUTH) 
             this.North = scene;
       }
       if (this.South == true || dir == NORTH) {
-         this.tiles[ROOM_HIG-1][(ROOM_WID-1)/2] = SOUTH;
+         this.tiles[this.wallS][(ROOM_WID_MAX-1)/2] = SOUTH;
          if (dir == NORTH)
             this.South = scene;
       }
       if (this.East == true || dir == WEST) {
-         this.tiles[(ROOM_HIG-1)/2][ROOM_WID-1] = EAST;
-         this.tiles[(ROOM_HIG-1)/2 - 1][ROOM_WID-1] = 2;
+         this.tiles[(ROOM_HIG_MAX-1)/2][this.wallE] = EAST;
+         this.tiles[(ROOM_HIG_MAX-1)/2 - 1][this.wallE] = 2;
          if (dir == WEST)
             this.East = scene;
       }
       if (this.West == true || dir == EAST) {
-         this.tiles[(ROOM_HIG-1)/2][0] = WEST;
-         this.tiles[(ROOM_HIG-1)/2 - 1][0] = 2;
+         this.tiles[(ROOM_HIG_MAX-1)/2][this.wallW] = WEST;
+         this.tiles[(ROOM_HIG_MAX-1)/2 - 1][this.wallW] = 2;
          if (dir == EAST)
             this.West = scene;
       }
       if ((this.Up == true && dir != UP) || dir == DOWN) {
-         this.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] = UP;
-         this.tiles[(ROOM_HIG-1)/2-1][(ROOM_WID-1)/2] = 1;
-         this.tiles[(ROOM_HIG-1)/2-1][(ROOM_WID-1)/2+1] = 1;
-         this.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2+1] = 1;
-         this.tiles[(ROOM_HIG-1)/2+1][(ROOM_WID-1)/2+1] = 2;
-         this.tiles[(ROOM_HIG-1)/2+1][(ROOM_WID-1)/2] = 2;
+         this.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2] = UP;
+         this.tiles[(ROOM_HIG_MAX-1)/2-1][(ROOM_WID_MAX-1)/2] = 1;
+         this.tiles[(ROOM_HIG_MAX-1)/2-1][(ROOM_WID_MAX-1)/2+1] = 1;
+         this.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2+1] = 1;
+         this.tiles[(ROOM_HIG_MAX-1)/2+1][(ROOM_WID_MAX-1)/2+1] = 2;
+         this.tiles[(ROOM_HIG_MAX-1)/2+1][(ROOM_WID_MAX-1)/2] = 2;
          if (dir == DOWN) {
             this.Up = scene;
             this.Down = false;
          }
       }
       if ((this.Down == true && dir != DOWN) || dir == UP) {
-         this.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] = DOWN;
-         this.tiles[(ROOM_HIG-1)/2-1][(ROOM_WID-1)/2] = 2;
-         this.tiles[(ROOM_HIG-1)/2-1][(ROOM_WID-1)/2-1] = 1;
-         this.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2-1] = 1;
-         this.tiles[(ROOM_HIG-1)/2+1][(ROOM_WID-1)/2-1] = 2;
-         this.tiles[(ROOM_HIG-1)/2+1][(ROOM_WID-1)/2] = 2;
+         this.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2] = DOWN;
+         this.tiles[(ROOM_HIG_MAX-1)/2-1][(ROOM_WID_MAX-1)/2] = 2;
+         this.tiles[(ROOM_HIG_MAX-1)/2-1][(ROOM_WID_MAX-1)/2-1] = 1;
+         this.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2-1] = 1;
+         this.tiles[(ROOM_HIG_MAX-1)/2+1][(ROOM_WID_MAX-1)/2-1] = 2;
+         this.tiles[(ROOM_HIG_MAX-1)/2+1][(ROOM_WID_MAX-1)/2] = 2;
          if (dir == UP) {
             this.Down = scene;
             this.Up = false;
@@ -582,7 +609,7 @@ Room = Class.create(Map, {
       var exitCoords = Array();
       var pathFinder = new EasyStar.js();
       var retry = {Value: false};
-      var tempTiles = Array(ROOM_HIG);
+      var tempTiles = Array(ROOM_HIG_MAX);
       var numAttempt = -1;
       
       pathFinder.setAcceptableTiles([0, NEXT_LEVEL, NORTH, SOUTH, EAST, WEST, UP, DOWN]);
@@ -591,9 +618,9 @@ Room = Class.create(Map, {
          numAttempt++;
          
          /* Populate the map with obstacles */
-         for (countRow = 0; countRow < ROOM_HIG; countRow++) {
-            tempTiles[countRow] = Array(ROOM_WID);
-            for (countCol = 0; countCol < ROOM_WID; countCol++) {
+         for (countRow = 0; countRow < ROOM_HIG_MAX; countRow++) {
+            tempTiles[countRow] = Array(ROOM_WID_MAX);
+            for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
                tempTiles[countRow][countCol] = this.tiles[countRow][countCol];
                if (tempTiles[countRow][countCol] == 0 && Math.floor(Math.random() * (10+numAttempt)) == numAttempt) {   //***VARY***
                   tempTiles[countRow][countCol] = 2;
@@ -608,25 +635,25 @@ Room = Class.create(Map, {
          
          /* Establishing the tiles that can't be blocked */
          if (this.North != false) {
-            exitCoords.push((ROOM_WID-1)/2);
-            exitCoords.push(0);
+            exitCoords.push((ROOM_WID_MAX-1)/2);
+            exitCoords.push(this.wallN);
          }
          if (this.South != false) {
-            exitCoords.push((ROOM_WID-1)/2);
-            exitCoords.push(ROOM_HIG-1);
+            exitCoords.push((ROOM_WID_MAX-1)/2);
+            exitCoords.push(this.wallS);
          }
          if (this.East != false || (this.Down != false && exitPlaced)) {
-            exitCoords.push(ROOM_WID-1);
-            exitCoords.push((ROOM_HIG-1)/2);
+            exitCoords.push(this.wallE);
+            exitCoords.push((ROOM_HIG_MAX-1)/2);
          }
          if (this.West != false || (this.Up != false && exitPlaced)) {
-            exitCoords.push(0);
-            exitCoords.push((ROOM_HIG-1)/2);
+            exitCoords.push(this.wallW);
+            exitCoords.push((ROOM_HIG_MAX-1)/2);
          }
          if (exitCoords.length <= 2 || sceneList.length == minRooms || sceneList.length == 0 ||
              this.Up != false || this.Down != false) {
-            exitCoords.push((ROOM_WID-1)/2);
-            exitCoords.push((ROOM_HIG-1)/2);
+            exitCoords.push((ROOM_WID_MAX-1)/2);
+            exitCoords.push((ROOM_HIG_MAX-1)/2);
          }
          
          /* Make sure there is a path to each exit */
@@ -653,11 +680,11 @@ Room = Class.create(Map, {
    createFirstRoom: function() {
       var countRow, countCol;
    
-      for (countRow = 0; countRow < ROOM_HIG-1; countRow++) {
-         for (countCol = 1; countCol < ROOM_WID-1; countCol++) {
-            if (countRow == 0 && this.tiles[countRow][countCol] == 1)
+      for (countRow = this.wallN; countRow < this.wallS; countRow++) {
+         for (countCol = this.wallW+1; countCol < this.wallE; countCol++) {
+            if (countRow == this.wallN && this.tiles[countRow][countCol] == 1)
                this.tiles[countRow][countCol] = 2;
-            else if (countRow != 0) {
+            else if (countRow != this.wallN) {
                this.tiles[countRow][countCol] = 0;
                this.items.tiles[countRow][countCol] = -1;
                this.chests.tiles[countRow][countCol] = -1;
@@ -665,14 +692,14 @@ Room = Class.create(Map, {
             }
          }
       }
-      
-      this.items.tiles[2][3] = 8;
-      this.items.tiles[2][5] = 9;
-      this.items.tiles[2][7] = 10;
-      this.items.tiles[4][3] = 7;
-      this.items.tiles[6][3] = 11;
-      this.items.tiles[6][5] = 12;
-      this.items.tiles[6][7] = 13;
+            
+      this.items.tiles[5][6] = 8;
+      this.items.tiles[5][8] = 9;
+      this.items.tiles[5][10] = 10;
+      this.items.tiles[7][6] = 7;
+      this.items.tiles[9][6] = 11;
+      this.items.tiles[9][8] = 12;
+      this.items.tiles[9][10] = 13;
       
       this.loadData(this.tiles);
       this.collisionData = this.collision;
@@ -699,8 +726,8 @@ EnemyGroup = Class.create(Group, {
             timeout = 50;
             valid = true;
             do {
-               x = GRID * (Math.floor(Math.random() * (ROOM_WID-2)) + 1);
-               y = GRID * (Math.floor(Math.random() * (ROOM_HIG-2)) + 1);
+               x = GRID * (Math.floor(Math.random() * (room.roomWidth-2)) + room.wallW + 1);
+               y = GRID * (Math.floor(Math.random() * (room.roomHeight-2)) + room.wallN + 1);
                if (room.checkTile(x, y) != 0)
                   valid = false;
                else if (room.collision[y/GRID][x/GRID] != 0)
@@ -762,7 +789,7 @@ Enemy = Class.create(Group, {
       this.sprite.x = x;
       this.sprite.y = y;
       this.sprite.frame = [2, 2, 3, 3, 4, 4, 3, 3];
-      room.editCollision(this.sprite.x/GRID, this.sprite.y/GRID, 2);
+      room.editCollision(this.sprite.y/GRID, this.sprite.x/GRID, 2);
       
       /* Enemy stats (speed must evenly divide the grid length) */
       if (type == "monster1.gif") {                                                                                        //***VARY***
@@ -815,13 +842,13 @@ Enemy = Class.create(Group, {
             this.hpDisplay.y += this.dy;
             if (this.sprite.x % GRID == 0 && this.sprite.y % GRID == 0) {
                if (this.dx == this.speed)
-                  map.editCollision(this.sprite.x/GRID - 1, this.sprite.y/GRID, 0);
+                  map.editCollision(this.sprite.y/GRID, this.sprite.x/GRID - 1, 0);
                else if (this.dx == -this.speed)
-                  map.editCollision(this.sprite.x/GRID + 1, this.sprite.y/GRID, 0);
+                  map.editCollision(this.sprite.y/GRID, this.sprite.x/GRID + 1, 0);
                else if (this.dy == this.speed)
-                  map.editCollision(this.sprite.x/GRID, this.sprite.y/GRID - 1, 0);
+                  map.editCollision(this.sprite.y/GRID - 1, this.sprite.x/GRID, 0);
                else if (this.dy == -this.speed)
-                  map.editCollision(this.sprite.x/GRID, this.sprite.y/GRID + 1, 0);
+                  map.editCollision(this.sprite.y/GRID + 1, this.sprite.x/GRID, 0);
                this.dx = this.dy = 0;
                this.isMoving = false;
             }
@@ -857,7 +884,7 @@ Enemy = Class.create(Group, {
             this.sprite.opacity = (this.sprite.opacity - 0.04).toFixed(2);
             this.hpDisplay.opacity = (this.hpDisplay.opacity - 0.04).toFixed(2);
             if (this.sprite.opacity == 0) {
-               map.editCollision(this.sprite.x/GRID, this.sprite.y/GRID, 0);
+               map.editCollision(this.sprite.y/GRID, this.sprite.x/GRID, 0);
                if (Math.floor(Math.random() * 8) == 0) { // 1/8 chance of an item drop                                  //***VARY***
                   map.items.tiles[this.sprite.y/GRID][this.sprite.x/GRID] = game.getRandomItem(false);
                   map.items.loadData(map.items.tiles);
@@ -904,19 +931,19 @@ Enemy = Class.create(Group, {
                this.isMoving = true;
                if (this.sprite.x < pathFound.nextx * GRID) {
                   this.dx = this.speed;
-                  map.editCollision(this.sprite.x/GRID + 1, this.sprite.y/GRID, 2);
+                  map.editCollision(this.sprite.y/GRID, this.sprite.x/GRID + 1, 2);
                }
                else if (this.sprite.x > pathFound.nextx * GRID) {
                   this.dx = -this.speed;
-                  map.editCollision(this.sprite.x/GRID - 1, this.sprite.y/GRID, 2);
+                  map.editCollision(this.sprite.y/GRID, this.sprite.x/GRID - 1, 2);
                }
                else if (this.sprite.y < pathFound.nexty * GRID) {
                   this.dy = this.speed;
-                  map.editCollision(this.sprite.x/GRID, this.sprite.y/GRID + 1, 2);
+                  map.editCollision(this.sprite.y/GRID + 1, this.sprite.x/GRID, 2);
                }
                else if (this.sprite.y > pathFound.nexty * GRID) {
                   this.dy = -this.speed;
-                  map.editCollision(this.sprite.x/GRID, this.sprite.y/GRID - 1, 2);
+                  map.editCollision(this.sprite.y/GRID - 1, this.sprite.x/GRID, 2);
                }
                
                if (this.dx < 0 || (this.dx == 0 && this.sprite.x > player.x))
@@ -933,30 +960,29 @@ Enemy = Class.create(Group, {
              map.tiles[this.sprite.y/GRID-1][this.sprite.x/GRID] == 0) {   /* North */
                this.dy = -this.speed;
                this.isMoving = true;
-               map.editCollision(this.sprite.x/GRID, this.sprite.y/GRID - 1, 2);
+               map.editCollision(this.sprite.y/GRID - 1, this.sprite.x/GRID, 2);
          }
          else if (randomDir == 1 && map.collision[this.sprite.y/GRID+1][this.sprite.x/GRID] == 0 &&
                   map.tiles[this.sprite.y/GRID+1][this.sprite.x/GRID] == 0) {    /* South */
                this.dy = this.speed;
                this.isMoving = true;
-               map.editCollision(this.sprite.x/GRID, this.sprite.y/GRID + 1, 2);
+               map.editCollision(this.sprite.y/GRID + 1, this.sprite.x/GRID, 2);
          }
          else if (randomDir == 2 && map.collision[this.sprite.y/GRID][this.sprite.x/GRID-1] == 0 &&
                   map.tiles[this.sprite.y/GRID][this.sprite.x/GRID-1] == 0) {    /* West */
             this.dx = -this.speed;
             this.isMoving = true;
-            map.editCollision(this.sprite.x/GRID - 1, this.sprite.y/GRID, 2);
+            map.editCollision(this.sprite.y/GRID, this.sprite.x/GRID - 1, 2);
             this.sprite.scaleX = 1;
          }
          else if (randomDir == 3 && map.collision[this.sprite.y/GRID][this.sprite.x/GRID+1] == 0 &&
                   map.tiles[this.sprite.y/GRID][this.sprite.x/GRID+1] == 0) {    /* East */
             this.dx = this.speed;
             this.isMoving = true;
-            map.editCollision(this.sprite.x/GRID + 1, this.sprite.y/GRID, 2);
+            map.editCollision(this.sprite.y/GRID, this.sprite.x/GRID + 1, 2);
             this.sprite.scaleX = -1;
          }
       }
-
    },
    
    checkHit: function() {
@@ -1048,6 +1074,7 @@ window.onload = function() {
    game.keybind(32, 'select');
    
    game.onload = function() {
+      /* Creating Main Menu */
       var title = createLabel("DUNGEON<br> <br>ADVENTURE", 50, 50, "32px sans-serif");
       var newGame = createLabel("New Game", 50, 150, "14px sans-serif", "red");
       var controls = createLabel("Controls", 50, 175, "14px sans-serif");
@@ -1160,10 +1187,14 @@ window.onload = function() {
     */
    game.initLevel = function(fromMenu) {
       curScene = new Scene();
-      map = new Room(0, null, 0, 0, 0);
+      curScene.backgroundColor = "black";
       
-      if (fromMenu)
-         player = new Player(GRID*(ROOM_WID-1)/2, GRID*(ROOM_HIG-1)/2);
+      if (fromMenu) {
+         player = new Player(GRID*(ROOM_WID_MAX-1)/2, GRID*(ROOM_HIG_MAX-1)/2);
+         map = new Room(null, null, 0, 0, 0);
+      }
+      else
+         map = new Room(0, null, 0, 0, 0);
          
       var randomNumber = Math.floor(Math.random() * 10000);
       console.log("AUD Seed = " + randomNumber);
@@ -1224,6 +1255,7 @@ window.onload = function() {
             nextRoom = new Room(dir, curScene, map.xRoom, map.yRoom, map.zRoom-1);
             
          nextScene = new Scene();
+         nextScene.backgroundColor = "black";
          nextScene.addChild(nextRoom);
          nextScene.addChild(new Hud());
          nextScene.addChild(nextRoom.chests);
@@ -1237,79 +1269,84 @@ window.onload = function() {
                 toCheck.zRoom == nextRoom.zRoom) { /* Existing room to the north */
                if (toCheck.South == true) {
                   nextRoom.North = sceneList[count];
-                  nextRoom.editTile((ROOM_WID-1)/2, 0, NORTH);
-                  nextRoom.editCollision((ROOM_WID-1)/2, 0, 0);
-                  if (nextRoom.tiles[1][(ROOM_WID-1)/2] == 1 || nextRoom.tiles[1][(ROOM_WID-1)/2] == 2) {
-                     nextRoom.editTile((ROOM_WID-1)/2, 1, 0);
-                     nextRoom.editCollision((ROOM_WID-1)/2, 0, 0);
+                  nextRoom.editTile(nextRoom.wallN, (ROOM_WID_MAX-1)/2, NORTH);
+                  nextRoom.editCollision(nextRoom.wallN, (ROOM_WID_MAX-1)/2, 0);
+                  if (nextRoom.tiles[nextRoom.wallN+1][(ROOM_WID_MAX-1)/2] == 1 || 
+                      nextRoom.tiles[nextRoom.wallN+1][(ROOM_WID_MAX-1)/2] == 2) {
+                     nextRoom.editTile(nextRoom.wallN+1, (ROOM_WID_MAX-1)/2, 0);
+                     nextRoom.editCollision(nextRoom.wallN+1, (ROOM_WID_MAX-1)/2, 0);
                   }
                   toCheck.South = nextScene;
                }
                else {
                   nextRoom.North = false;
-                  if (nextRoom.tiles[(ROOM_WID-1)/2][1] == 1 || nextRoom.tiles[(ROOM_WID-1)/2][1] == 2)
-                     nextRoom.editTile((ROOM_WID-1)/2, 0, 1)
+                  if (nextRoom.tiles[nextRoom.wallN+1][(ROOM_WID_MAX-1)/2] == 1 || 
+                      nextRoom.tiles[nextRoom.wallN+1][(ROOM_WID_MAX-1)/2] == 2)
+                     nextRoom.editTile(nextRoom.wallN, (ROOM_WID_MAX-1)/2, 1)
                   else
-                     nextRoom.editTile((ROOM_WID-1)/2, 0, 2)
-                  nextRoom.editCollision((ROOM_WID-1)/2, 0, 1);
+                     nextRoom.editTile(nextRoom.wallN, (ROOM_WID_MAX-1)/2, 2)
+                  nextRoom.editCollision(nextRoom.wallN, (ROOM_WID_MAX-1)/2, 1);
                }
             }
             if (toCheck.xRoom == nextRoom.xRoom && toCheck.yRoom == nextRoom.yRoom-1 &&
                 toCheck.zRoom == nextRoom.zRoom) { /* Existing room to the south */
                if (toCheck.North == true) {
                   nextRoom.South = sceneList[count];
-                  nextRoom.editTile((ROOM_WID-1)/2, ROOM_HIG-1, SOUTH);
-                  nextRoom.editCollision((ROOM_WID-1)/2, ROOM_HIG-1, 0);
-                  if (nextRoom.tiles[ROOM_HIG-2][(ROOM_WID-1)/2] == 1 || nextRoom.tiles[ROOM_HIG-2][(ROOM_WID-1)/2] == 2) {
-                     nextRoom.editTile((ROOM_WID-1)/2, ROOM_HIG-2, 0);
-                     nextRoom.editCollision((ROOM_WID-1)/2, ROOM_HIG-2, 0);
+                  nextRoom.editTile(nextRoom.wallS, (ROOM_WID_MAX-1)/2, SOUTH);
+                  nextRoom.editCollision(nextRoom.wallS, (ROOM_WID_MAX-1)/2, 0);
+                  if (nextRoom.tiles[nextRoom.wallS-1][(ROOM_WID_MAX-1)/2] == 1 || 
+                      nextRoom.tiles[nextRoom.wallS-1][(ROOM_WID_MAX-1)/2] == 2) {
+                     nextRoom.editTile(nextRoom.wallS-1, (ROOM_WID_MAX-1)/2, 0);
+                     nextRoom.editCollision(nextRoom.wallS-1, (ROOM_WID_MAX-1)/2, 0);
                   }
                   toCheck.North = nextScene;
                }
                else {
                   nextRoom.South = false;
-                  nextRoom.editTile((ROOM_WID-1)/2, ROOM_HIG-1, 1)
-                  nextRoom.editCollision((ROOM_WID-1)/2, ROOM_HIG-1, 1);
+                  nextRoom.editTile(nextRoom.wallS, (ROOM_WID_MAX-1)/2, 1)
+                  nextRoom.editCollision(nextRoom.wallS, (ROOM_WID_MAX-1)/2, 1);
                }
             }
             if (toCheck.xRoom == nextRoom.xRoom+1 && toCheck.yRoom == nextRoom.yRoom &&
                 toCheck.zRoom == nextRoom.zRoom) { /* Existing room to the east */
                if (toCheck.West == true) {
                   nextRoom.East = sceneList[count];
-                  nextRoom.editTile(ROOM_WID-1, (ROOM_HIG-1)/2, EAST);
-                  nextRoom.editTile(ROOM_WID-1, (ROOM_HIG-1)/2 - 1, 2);
-                  nextRoom.editCollision(ROOM_WID-1, (ROOM_HIG-1)/2, 0);
-                  if (nextRoom.tiles[(ROOM_HIG-1)/2][ROOM_WID-2] == 1 || nextRoom.tiles[(ROOM_HIG-1)/2][ROOM_WID-2] == 2) {
-                     nextRoom.editTile(ROOM_WID-2, (ROOM_HIG-1)/2, 0);
-                     nextRoom.editCollision(ROOM_WID-2, (ROOM_HIG-1)/2, 0);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2, nextRoom.wallE, EAST);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2 - 1, nextRoom.wallE, 2);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, nextRoom.wallE, 0);
+                  if (nextRoom.tiles[(ROOM_HIG_MAX-1)/2][nextRoom.wallE-1] == 1 || 
+                      nextRoom.tiles[(ROOM_HIG_MAX-1)/2][nextRoom.wallE-1] == 2) {
+                     nextRoom.editTile((ROOM_HIG_MAX-1)/2, nextRoom.wallE-1, 0);
+                     nextRoom.editCollision((ROOM_HIG_MAX-1)/2, nextRoom.wallE-1, 0);
                   }
                   toCheck.West = nextScene;
                }
                else {
                   nextRoom.East = false;
-                  nextRoom.editTile(ROOM_WID-1, (ROOM_HIG-1)/2, 1)
-                  nextRoom.editTile(ROOM_WID-1, (ROOM_HIG-1)/2 - 1, 1)
-                  nextRoom.editCollision(ROOM_WID-1, (ROOM_HIG-1)/2, 1);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2, nextRoom.wallE, 1)
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2 - 1, nextRoom.wallE, 1)
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, nextRoom.wallE, 1);
                }
             }
             if (toCheck.xRoom == nextRoom.xRoom-1 && toCheck.yRoom == nextRoom.yRoom &&
                 toCheck.zRoom == nextRoom.zRoom) { /* Existing room to the west */
                if (toCheck.East == true) {
                   nextRoom.West = sceneList[count];
-                  nextRoom.editTile(0, (ROOM_HIG-1)/2, WEST)
-                  nextRoom.editTile(0, (ROOM_HIG-1)/2 - 1, 2)
-                  nextRoom.editCollision(0, (ROOM_HIG-1)/2, 0);
-                  if (nextRoom.tiles[(ROOM_HIG-1)/2][1] == 1 || nextRoom.tiles[(ROOM_HIG-1)/2][1] == 2) {
-                     nextRoom.editTile((ROOM_HIG-1)/2, 1, 0);
-                     nextRoom.editCollision((ROOM_HIG-1)/2, 1, 0);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2, nextRoom.wallW, WEST)
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2 - 1, nextRoom.wallW, 2)
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, nextRoom.wallW, 0);
+                  if (nextRoom.tiles[(ROOM_HIG_MAX-1)/2][nextRoom.wallW+1] == 1 || 
+                      nextRoom.tiles[(ROOM_HIG_MAX-1)/2][nextRoom.wallW+1] == 2) {
+                     nextRoom.editTile((ROOM_HIG_MAX-1)/2, nextRoom.wallW+1, 0);
+                     nextRoom.editCollision((ROOM_HIG_MAX-1)/2, nextRoom.wallW+1, 0);
                   }
                   toCheck.East = nextScene;
                }
                else {
                   nextRoom.West = false;
-                  nextRoom.editTile(0, (ROOM_HIG-1)/2, 1)
-                  nextRoom.editTile(0, (ROOM_HIG-1)/2 - 1, 1)
-                  nextRoom.editCollision(0, (ROOM_HIG-1)/2, 1);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2, nextRoom.wallW, 1)
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2 - 1, nextRoom.wallW, 1)
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, nextRoom.wallW, 1);
                }
             }
             if (toCheck.xRoom == nextRoom.xRoom && toCheck.yRoom == nextRoom.yRoom &&
@@ -1317,34 +1354,35 @@ window.onload = function() {
                if (toCheck.Down == true) {
                   nextRoom.Up = sceneList[count];
                   
-                  nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2, UP);
-                  nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2-1, 1);
-                  nextRoom.editTile((ROOM_WID-1)/2+1, (ROOM_HIG-1)/2-1, 1);
-                  nextRoom.editTile((ROOM_WID-1)/2+1, (ROOM_HIG-1)/2, 1);
-                  nextRoom.editTile((ROOM_WID-1)/2+1, (ROOM_HIG-1)/2+1, 2);
-                  nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2+1, 2);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, UP);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2, 1);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2+1, 1);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2+1, 1);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2+1, 2);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 2);
                   nextRoom.fixObstacleBlocks();
                   
-                  nextRoom.editCollision((ROOM_WID-1)/2, (ROOM_HIG-1)/2, 0);
-                  nextRoom.editCollision((ROOM_WID-1)/2, (ROOM_HIG-1)/2-1, 1);
-                  nextRoom.editCollision((ROOM_WID-1)/2+1, (ROOM_HIG-1)/2-1, 1);
-                  nextRoom.editCollision((ROOM_WID-1)/2+1, (ROOM_HIG-1)/2, 1);
-                  nextRoom.editCollision((ROOM_WID-1)/2+1, (ROOM_HIG-1)/2+1, 1);
-                  nextRoom.editCollision((ROOM_WID-1)/2, (ROOM_HIG-1)/2+1, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2+1, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2+1, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2+1, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 1);
 
-                  if (nextRoom.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2-1] == 1 || 
-                      nextRoom.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2-1] == 2) {
-                     nextRoom.editTile((ROOM_HIG-1)/2, (ROOM_WID-1)/2-1, 0);
-                     nextRoom.editCollision((ROOM_HIG-1)/2, (ROOM_WID-1)/2-1, 0);
+                  if (nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2-1] == 1 || 
+                      nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2-1] == 2) {
+                     nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2-1, 0);
+                     nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2-1, 0);
                   }
 
                   toCheck.Down = nextScene;
                }
                else {
                   nextRoom.Up = false;
-                  if (nextRoom.Down == false && nextRoom.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] != NEXT_LEVEL) {
-                     nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2, 0);
-                     nextRoom.editCollision((ROOM_WID-1)/2, (ROOM_HIG-1)/2, 0);
+                  if (nextRoom.Down == false && nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2] != NEXT_LEVEL) {
+                     nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
+                     nextRoom.editTile((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2, 2);
+                     nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
                   }
                }
             }
@@ -1353,34 +1391,34 @@ window.onload = function() {
                if (toCheck.Up == true) {
                   nextRoom.Down = sceneList[count];
                      
-                  nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2, DOWN);
-                  nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2-1, 2);
-                  nextRoom.editTile((ROOM_WID-1)/2-1, (ROOM_HIG-1)/2-1, 1);
-                  nextRoom.editTile((ROOM_WID-1)/2-1, (ROOM_HIG-1)/2, 1);
-                  nextRoom.editTile((ROOM_WID-1)/2-1, (ROOM_HIG-1)/2+1, 2);
-                  nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2+1, 2);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, DOWN);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2, 2);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2-1, 1);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2-1, 1);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2-1, 2);
+                  nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 2);
                   nextRoom.fixObstacleBlocks();
                      
-                  nextRoom.editCollision((ROOM_WID-1)/2, (ROOM_HIG-1)/2, 0);
-                  nextRoom.editCollision((ROOM_WID-1)/2, (ROOM_HIG-1)/2-1, 1);
-                  nextRoom.editCollision((ROOM_WID-1)/2-1, (ROOM_HIG-1)/2-1, 1);
-                  nextRoom.editCollision((ROOM_WID-1)/2-1, (ROOM_HIG-1)/2, 1);
-                  nextRoom.editCollision((ROOM_WID-1)/2-1, (ROOM_HIG-1)/2+1, 1);
-                  nextRoom.editCollision((ROOM_WID-1)/2, (ROOM_HIG-1)/2+1, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2-1, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2-1, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2-1, 1);
+                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 1);
 
-                  if (nextRoom.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2+1] == 1 || 
-                      nextRoom.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2+1] == 2) {
-                     nextRoom.editTile((ROOM_HIG-1)/2, (ROOM_WID-1)/2+1, 0);
-                     nextRoom.editCollision((ROOM_HIG-1)/2, (ROOM_WID-1)/2+1, 0);
+                  if (nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2+1] == 1 || 
+                      nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2+1] == 2) {
+                     nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2+1, 0);
+                     nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2+1, 0);
                   }
 
                   toCheck.Up = nextScene;
                }
                else {
                   nextRoom.Down = false;
-                  if (nextRoom.Up == false && nextRoom.tiles[(ROOM_HIG-1)/2][(ROOM_WID-1)/2] != NEXT_LEVEL) {
-                     nextRoom.editTile((ROOM_WID-1)/2, (ROOM_HIG-1)/2, 0);
-                     nextRoom.editCollision((ROOM_WID-1)/2, (ROOM_HIG-1)/2, 0);
+                  if (nextRoom.Up == false && nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2] != NEXT_LEVEL) {
+                     nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
+                     nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
                   }
                }
             }
@@ -1398,8 +1436,8 @@ window.onload = function() {
             nextRoom = nextScene.firstChild;
             console.log("Is old Room");
          }
-         player.x = GRID * (ROOM_WID-1)/2;
-         player.y = GRID * (ROOM_HIG-2);
+         player.x = GRID * (ROOM_WID_MAX-1)/2;
+         player.y = GRID * (nextRoom.wallS-1);
       }
       else if (dir == SOUTH) {
          if (!isNewRoom) {
@@ -1407,8 +1445,8 @@ window.onload = function() {
             nextRoom = nextScene.firstChild;
             console.log("Is old Room");
          }
-         player.x = GRID * (ROOM_WID-1)/2;
-         player.y = GRID;
+         player.x = GRID * (ROOM_WID_MAX-1)/2;
+         player.y = GRID * (nextRoom.wallN+1);
       }
       else if (dir == EAST) {
          if (!isNewRoom) {
@@ -1416,8 +1454,8 @@ window.onload = function() {
             nextRoom = nextScene.firstChild;
             console.log("Is old Room");
          }
-         player.x = GRID;
-         player.y = GRID * (ROOM_HIG-1)/2;
+         player.x = GRID * (nextRoom.wallW+1);
+         player.y = GRID * (ROOM_HIG_MAX-1)/2;
       }
       else if (dir == WEST) {
          if (!isNewRoom) {
@@ -1425,8 +1463,8 @@ window.onload = function() {
             nextRoom = nextScene.firstChild;
             console.log("Is old Room");
          }
-         player.x = GRID * (ROOM_WID-2);
-         player.y = GRID * (ROOM_HIG-1)/2;
+         player.x = GRID * (nextRoom.wallE-1);
+         player.y = GRID * (ROOM_HIG_MAX-1)/2;
       }
       else if (dir == UP) {
          if (!isNewRoom) {
@@ -1434,8 +1472,8 @@ window.onload = function() {
             nextRoom = nextScene.firstChild;
             console.log("Is old Room");
          }
-         player.x = GRID * ((ROOM_WID-1)/2 + 1);
-         player.y = GRID * (ROOM_HIG-1)/2;
+         player.x = GRID * ((ROOM_WID_MAX-1)/2 + 1);
+         player.y = GRID * (ROOM_HIG_MAX-1)/2;
          player.direction = P_RIGHT;
       }
       else if (dir == DOWN) {
@@ -1444,8 +1482,8 @@ window.onload = function() {
             nextRoom = nextScene.firstChild;
             console.log("Is old Room");
          }
-         player.x = GRID * ((ROOM_WID-1)/2 - 1);
-         player.y = GRID * (ROOM_HIG-1)/2;
+         player.x = GRID * ((ROOM_WID_MAX-1)/2 - 1);
+         player.y = GRID * (ROOM_HIG_MAX-1)/2;
          player.direction = P_LEFT;
       }
       
