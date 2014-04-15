@@ -71,15 +71,27 @@ var Metrics = function() {
       this.dmgTakenPerRoom = Math.round(this.dmgTaken / this.roomsVisited * 10) / 10;
       this.dmgDealtPerEnemy = Math.round(this.dmgDealt / this.totalEnemies * 10) / 10;
       this.dmgTakenPerEnemy = Math.round(this.dmgTaken / this.totalEnemies * 10) / 10;
-      this.dmgDealtPerEncounter = Math.round(this.dmgDealt / this.enemyEncounters * 10) / 10;
-      this.dmgTakenPerEncounter = Math.round(this.dmgTaken / this.enemyEncounters * 10) / 10;
-      this.enemiesFoughtRatio = Math.round(this.enemyEncounters / this.totalEnemies *100)/ 100;
-      this.killedToEncounteredRatio = Math.round(this.enemiesKilled / this.enemyEncounters * 100) / 100;
+      if (this.enemyEncounters == 0) {
+         this.dmgDealtPerEncounter = 0;
+         this.dmgTakenPerEncounter = 0;
+         this.killedToEncounteredRatio = 0;
+      }
+      else {
+         this.dmgDealtPerEncounter = Math.round(this.dmgDealt / this.enemyEncounters * 10) / 10;
+         this.dmgTakenPerEncounter = Math.round(this.dmgTaken / this.enemyEncounters * 10) / 10;
+         this.killedToEncounteredRatio = Math.round(this.enemiesKilled / this.enemyEncounters * 100) / 100;
+      }
+      this.enemiesFoughtRatio = Math.round(this.enemyEncounters / this.totalEnemies * 100)/ 100;
       this.hitsPerKill = this.enemiesKilled == 0 ? 0 : Math.round(this.enemyHits / this.enemiesKilled * 10) / 10;
       this.accuracy = this.enemyHits == 0 && this.enemyMisses == 0 ? 0 : Math.round(this.enemyHits / (this.enemyHits + this.enemyMisses) * 100) / 100;
       this.timePerRoom = Math.round(this.time / this.roomsVisited * 10) / 10;
       this.stepsPerRoom = Math.round(this.stepsTaken / this.roomsVisited * 10) / 10;
    };
+
+   this.getObstacleChance = function() {
+      this.calculateAverages();
+      
+   }
 
    /*
     * Print the metric values to the console.

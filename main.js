@@ -149,7 +149,7 @@ TextBox = Class.create(Group, {
       else if (itemNum == 8)
          this.desc.text = "Sword of Ice: Average attack, Reduces health,<br>Slows enemies on hit";
       else if (itemNum == 9)
-         this.desc.text = "Sword of Earth: Average attack, Increases defense, Reduces walking speed and attack speed";
+         this.desc.text = "Sword of Earth: Average attack, Increases defense, Reduces attack speed";
       else if (itemNum == 10)
          this.desc.text = "Sword of Light: Low attack, Increases walking<br>speed";
       else if (itemNum == 11)
@@ -622,6 +622,7 @@ Room = Class.create(Map, {
             tempTiles[countRow] = Array(ROOM_WID_MAX);
             for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
                tempTiles[countRow][countCol] = this.tiles[countRow][countCol];
+                                                                              // Lower number -> more obstacles
                if (tempTiles[countRow][countCol] == 0 && Math.floor(Math.random() * (10+numAttempt)) == numAttempt) {   //***VARY***
                   tempTiles[countRow][countCol] = 2;
                }
@@ -671,9 +672,9 @@ Room = Class.create(Map, {
             pathFinder.calculate();
          }
          exitCoords.length = 0;
-      } while (retry.Value && numAttempt < 5);
+      } while (retry.Value && numAttempt < 10);
 
-      if (numAttempt < 5)     /* Only add the obstacles if a path was found */
+      if (numAttempt < 10)     /* Only add the obstacles if a path was found */
          this.tiles = tempTiles;
    },
    
@@ -1541,8 +1542,8 @@ window.onload = function() {
       else if (item == 9) {   // Earth sword
          player.strength = 7;
          player.defense = 3;
-         player.walkSpeed = 2;
-         player.swingSpeed = 8;
+         player.walkSpeed = 4;
+         player.swingSpeed = 10;
          player.maxHealth = 100;
          player.ability = NO_ABILITY;
       }
