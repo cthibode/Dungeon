@@ -612,6 +612,8 @@ Room = Class.create(Map, {
       var tempTiles = Array(ROOM_HIG_MAX);
       var numAttempt = -1;
       
+      var obstacleChance = metrics.getObstacleChance();
+      
       pathFinder.setAcceptableTiles([0, NEXT_LEVEL, NORTH, SOUTH, EAST, WEST, UP, DOWN]);
       do {
          retry.Value = false;
@@ -622,8 +624,8 @@ Room = Class.create(Map, {
             tempTiles[countRow] = Array(ROOM_WID_MAX);
             for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
                tempTiles[countRow][countCol] = this.tiles[countRow][countCol];
-                                                                              // Lower number -> more obstacles
-               if (tempTiles[countRow][countCol] == 0 && Math.floor(Math.random() * (10+numAttempt)) == numAttempt) {   //***VARY***
+               if (tempTiles[countRow][countCol] == 0 && Math.random() < obstacleChance - numAttempt/20) {
+//                if (tempTiles[countRow][countCol] == 0 && Math.floor(Math.random() * (10+numAttempt)) == numAttempt) {   //***VARY***
                   tempTiles[countRow][countCol] = 2;
                }
                if (countRow > 0 && tempTiles[countRow-1][countCol] == 2 &&
@@ -674,8 +676,10 @@ Room = Class.create(Map, {
          exitCoords.length = 0;
       } while (retry.Value && numAttempt < 10);
 
-      if (numAttempt < 10)     /* Only add the obstacles if a path was found */
+      if (numAttempt < 10) {    /* Only add the obstacles if a path was found */
          this.tiles = tempTiles;
+         console.log("Create obstacles on attempt " + numAttempt);
+      }
    },
    
    createFirstRoom: function() {

@@ -4,6 +4,11 @@
  * based on that play style.
  */
 var Metrics = function() {
+   this.gameInit = function() {
+      this.numLevels = 0;
+      this.TAdmgDealtPerRoom = 0;
+   }
+
    /*
     * Initializes the metrics at the beginning of each level.
     * Parameters:
@@ -50,6 +55,8 @@ var Metrics = function() {
       this.stepsPerRoom = 0;
       // Add more metrics about number of rooms visited in relation to the minimum number of rooms
       // Add metrics relating to number of keys held, total chests, chests opened
+      
+      this.numLevels++;
    };
    
    /* 
@@ -62,6 +69,13 @@ var Metrics = function() {
       this.avgHealth += (curHealth - this.avgHealth) / ++this.time;
       this.avgHealth = Math.round(this.avgHealth * 10) / 10;
    };
+   
+   /* Calculate running average values across all previous levels. Call when the 
+    * level is over to add the just completed level to the average.
+    */
+   this.calculateTotalAverages = function() {
+      this.TAdmgDealtPerRoom += (this.dmgDealtPerRoom - this.TAdmgDealtPerRoom) / this.numLevels;
+   }
    
    /*
     * Calculate the metrics for averages based on the raw data collected.
@@ -91,7 +105,12 @@ var Metrics = function() {
    this.getObstacleChance = function() {
       this.calculateAverages();
       
-   }
+      // Average of 15s per room
+//       var timeWeight = 1 - Math.min(0.8, this.timePerRoom / 15);
+//       var fightWeight = 1 - this.enemiesFoughtRatio + 0.2;
+
+      return 1/this.timePerRoom + 0.15;   // Comes out to a value between 0.2 - 0.45
+   };
 
    /*
     * Print the metric values to the console.
