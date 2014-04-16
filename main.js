@@ -157,7 +157,7 @@ TextBox = Class.create(Group, {
       else if (itemNum == 12)
          this.desc.text = "Sword of Poison: Low attack, Poisons enemies<br>on hit";
       else if (itemNum == 13)
-         this.desc.text = "Sword of Water: ...I don't know yet...";
+         this.desc.text = "Sword of Water: Low attack, Increases attack <br>speed, Slightly increases health";
    }
 });
 
@@ -187,7 +187,7 @@ Player = Class.create(Sprite, {
       this.sword = 1;                                                                                                //***VARY***
       this.strength = 3;
       this.shield = -1;
-      this.defense = 0;
+      this.defense = this.defSword = this.defShield = 0;
       this.accuracy = 0.8;
       this.health = 100;
       this.maxHealth = 100;
@@ -857,8 +857,10 @@ Enemy = Class.create(Group, {
          else if (this.health >= 0) {    
             if (this.effect != NO_ABILITY) {
                if (--this.effectTimer == 0) {
-                  if (this.effect == ICE_ABILITY)
+                  if (this.effect == ICE_ABILITY) {
                      this.speed *= 2;
+                     this.turnTimeMax -= 10;
+                  }
                   this.sprite.image = game.assets["assets/images/" + this.type];
                   this.sprite.frame = [2, 2, 3, 3, 4, 4, 3, 3];
                   this.effect = NO_ABILITY;
@@ -1002,7 +1004,8 @@ Enemy = Class.create(Group, {
                   this.speed /= 2;
                }
                this.effect = ICE_ABILITY;
-               this.effectTimer = game.fps * 4;
+               this.effectTimer = game.fps * 5;
+               this.turnTimeMax += 10;
                if (this.type == "monster1.gif")
                   this.sprite.image = game.assets["assets/images/monster1slow.gif"];
                else if (this.type == "monster2.gif")
@@ -1011,7 +1014,7 @@ Enemy = Class.create(Group, {
             else if (player.ability == POISON_ABILITY) {
                this.effect = POISON_ABILITY;
                this.poisonTimer = game.fps;
-               this.effectTimer = game.fps * 4;
+               this.effectTimer = game.fps * 6;
                if (this.type == "monster1.gif")
                   this.sprite.image = game.assets["assets/images/monster1poison.gif"];
                else if (this.type == "monster2.gif")
@@ -1516,8 +1519,8 @@ window.onload = function() {
          aud.adaptPattern(0.9, 0.7);
       }
       else if (item == 1) {   // Default sword
-         player.strength = 3;
-         player.defense = 0;
+         player.strength = 1;
+         player.defSword = 0;
          player.walkSpeed = 4;
          player.swingSpeed = 5;
          player.maxHealth = 100;
@@ -1525,7 +1528,7 @@ window.onload = function() {
       }
       else if (item == 7) {   // Normal sword
          player.strength = 7;
-         player.defense = 0;
+         player.defSword = 0;
          player.walkSpeed = 4;
          player.swingSpeed = 5;
          player.maxHealth = 100;
@@ -1533,7 +1536,7 @@ window.onload = function() {
       }
       else if (item == 8) {   // Ice sword
          player.strength = 7;
-         player.defense = 0;
+         player.defSword = 0;
          player.walkSpeed = 4;
          player.swingSpeed = 5;
          player.maxHealth = 75;
@@ -1541,7 +1544,7 @@ window.onload = function() {
       }
       else if (item == 9) {   // Earth sword
          player.strength = 7;
-         player.defense = 3;
+         player.defSword = 3;
          player.walkSpeed = 4;
          player.swingSpeed = 10;
          player.maxHealth = 100;
@@ -1549,7 +1552,7 @@ window.onload = function() {
       }
       else if (item == 10) {  // Light sword
          player.strength = 3;
-         player.defense = 0;
+         player.defSword = 0;
          player.walkSpeed = 8;
          player.swingSpeed = 5;
          player.maxHealth = 100;
@@ -1557,7 +1560,7 @@ window.onload = function() {
       }
       else if (item == 11) {  // Fire sword
          player.strength = 10;
-         player.defense = -2;
+         player.defSword = -2;
          player.walkSpeed = 4;
          player.swingSpeed = 5;
          player.maxHealth = 90;
@@ -1565,34 +1568,34 @@ window.onload = function() {
       }
       else if (item == 12) {  // Poison sword
          player.strength = 2;
-         player.defense = 0;
+         player.defSword = 0;
          player.walkSpeed = 4;
          player.swingSpeed = 5;
          player.maxHealth = 100;
          player.ability = POISON_ABILITY;
       }
       else if (item == 13) {  // Water sword
-         player.strength = 7;
-         player.defense = 0;
+         player.strength = 3;
+         player.defSword = 0;
          player.walkSpeed = 4;
-         player.swingSpeed = 5;
-         player.maxHealth = 100;
+         player.swingSpeed = 4;
+         player.maxHealth = 110;
          player.ability = NO_ABILITY;
       }
       else if (item == 14)    // Shields
-         player.defense = 1;
+         player.defShield = 1;
       else if (item == 15)
-         player.defense = 2;
+         player.defShield = 2;
       else if (item == 16)
-         player.defense = 4;
+         player.defShield = 4;
       else if (item == 17)
-         player.defense = 6;
+         player.defShield = 6;
       else if (item == 18)
-         player.defense = 9;
+         player.defShield = 9;
       else if (item == 19)
-         player.defense = 12;
+         player.defShield = 12;
       else if (item == 20)
-         player.defense = 15;
+         player.defShield = 15;
          
       if (player.health > player.maxHealth)
          player.health = player.maxHealth;
@@ -1606,27 +1609,37 @@ window.onload = function() {
          player.shield = item;
       }
       
+      player.defense = player.defSword + player.defShield;
+      
       map.items.loadData(map.items.tiles);
    }, 
    
    /*
     * Returns the frame of a random item (change constants to vary probability)
+    * Currently, key = 40%, potion = 30%, sword = 20%, shield = 10%
     * Parameters:
     *    wantOrb = true if there is a possibility of returning the orb
     */
    game.getRandomItem = function(wantOrb) {                                                                       //***VARY***
-      var itemFrame;
+      var itemFrame, swordFrame, shieldFrame;
+      var randomNum = Math.random();
    
-      itemFrame = Math.floor(Math.random() * 14) + 7;
-      itemFrame = Math.floor(itemFrame/7) * 7 + 0 + itemFrame % 2; // Change the itemFrame % # for a different range
+      swordFrame = Math.floor(Math.random() * 7) + 7;
+      shieldFrame = Math.floor(Math.random() * 2) + 14 + 0; //  *2 = range, +0 = offset
+   
       if (wantOrb && !player.seenOrb && Math.random() < sceneList.length/minRooms) {
          itemFrame = ORB;
          player.seenOrb = true;
       }
-      else if (Math.random() < 0.4)
+      else if (randomNum < 0.4)
          itemFrame = KEY;
+      else if (randomNum < 0.7)
+         itemFrame = POTION;
+      else if (randomNum < 0.9)
+         itemFrame = swordFrame;
       else
-         itemFrame = Math.random() < 0.4 ? itemFrame : POTION;
+         itemFrame = shieldFrame;
+      
       return itemFrame;
    },
    
