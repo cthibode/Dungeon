@@ -401,8 +401,9 @@ Player = Class.create(Sprite, {
    
    takeDamage: function(dmg) {
       var hitSound = game.assets['assets/sounds/grunt.wav'].clone();
-      hitSound.play();
       this.health -= dmg;
+      if (dmg > 0)
+         hitSound.play();
       if (this.health <= 0) {
          metrics.dmgTaken += dmg + this.health;
          metrics.minHealth = 0;
@@ -829,6 +830,7 @@ Enemy = Class.create(Group, {
          this.hpDisplay = createLabel(this.health + "/" + this.maxHealth, this.sprite.x, 
                                    this.sprite.y+20, "10px sans-serif", "rgb(200,200,200)");
       }
+      this.accuracy = 1;
       
       /* Real time movement fields */
       this.turnTime = Math.floor(Math.random() * this.turnTimeMax/2);
@@ -924,7 +926,7 @@ Enemy = Class.create(Group, {
          return;
             
       /* If the player is in range of the enemy's sight, try to find a path to the player */
-      if (this.sprite.within(player, GRID*4) && this.health > 0) {                                                      //***VARY***
+      if (this.sprite.within(player, GRID*3) && this.health > 0) {                                                      //***VARY***
          this.pathFinder.setGrid(map.collision);
          this.pathFinder.findPath(this.sprite.x/GRID, this.sprite.y/GRID, player.x/GRID, player.y/GRID, function(path) {
             if (path != null && path.length > 1) {
@@ -945,7 +947,9 @@ Enemy = Class.create(Group, {
                   metrics.enemyEncounters++;
                   this.hadEncounter = true;
                }
-               player.takeDamage(game.getDamage(this.strength, player.defense, 100));
+               player.takeDamage(game.getDamage(this.strength, player.defense, this.accuracy));
+               if (this.accuracy == 1)
+                  this.accuracy = 0.8;
             }
             /* Otherwise, move towards player */
             else {
@@ -1643,7 +1647,7 @@ window.onload = function() {
       var didBreak = false;
       var newSound;
       
-      if (Math.random() < 0.2 && item >= 7 && item < 21) {  // ***VARY*** Use a value based on the time the player held the pearl
+      if (Math.random() < 0.01 && item >= 7 && item < 21) {  // ***VARY*** Use a value based on the time the player held the pearl
          didBreak = true;
          newSound = game.assets['assets/sounds/shatter.wav'].clone();
          newSound.play();
