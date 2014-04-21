@@ -142,22 +142,34 @@ TextBox = Class.create(Group, {
    },
    
    changeText: function(itemNum) {
-      if (itemNum == 1)
-         this.desc.text = "Butter Knife: It's good for toast!";
-      else if (itemNum == 7)
-         this.desc.text = "Steel sword: Average attack";
+      if (itemNum == 7)
+         this.desc.text = "Steel sword: Attack +4";
       else if (itemNum == 8)
-         this.desc.text = "Sword of Ice: Average attack, Reduces health,<br>Slows enemies on hit";
+         this.desc.text = "Sword of Ice: Attack +4, Health -25,<br>Slows enemies on hit";
       else if (itemNum == 9)
-         this.desc.text = "Sword of Earth: Average attack, Increases defense, Reduces attack speed";
+         this.desc.text = "Sword of Earth: Attack +4, Defense +3, <br>Attack Speed x0.5";
       else if (itemNum == 10)
-         this.desc.text = "Sword of Light: Low attack, Increases walking<br>speed";
+         this.desc.text = "Sword of Light: Attack +0, Walking Speed x2";
       else if (itemNum == 11)
-         this.desc.text = "Sword of Fire: High attack, Reduces defense,<br>Slightly reduces health";
+         this.desc.text = "Sword of Fire: Attack +7, Defense -2,<br>Health -10";
       else if (itemNum == 12)
-         this.desc.text = "Sword of Poison: Low attack, Poisons enemies<br>on hit";
+         this.desc.text = "Sword of Poison: Attack -1, Poisons enemies on hit";
       else if (itemNum == 13)
-         this.desc.text = "Sword of Water: Low attack, Increases attack <br>speed, Slightly increases health";
+         this.desc.text = "Sword of Water: Attack +0, Attack Speed x1.2, <br>Health +10";
+      else if (itemNum == 14)
+         this.desc.text = "Toy Shield: Defense +1";
+      else if (itemNum == 15)
+         this.desc.text = "Wooden Shield: Defense +2";
+      else if (itemNum == 16)
+         this.desc.text = "Battle Paddle: Defense +3";
+      else if (itemNum == 17)
+         this.desc.text = "The Protector: Defense +4";
+      else if (itemNum == 18)
+         this.desc.text = "War Door: Defense +5";
+      else if (itemNum == 19)
+         this.desc.text = "Splendid Screen: Defense +6";
+      else if (itemNum == 20)
+         this.desc.text = "Divine Defender: Defense +7";
    }
 });
 
@@ -224,11 +236,11 @@ Player = Class.create(Sprite, {
    checkTextBox: function() {
       var tileContents = map.items.checkTile(this.x, this.y);
       
-      if (curScene.lastChild == player && (tileContents >= 7 && tileContents < 14 || tileContents == 1))
+      if (curScene.lastChild == player && (tileContents >= 7 && tileContents < 21))
          curScene.addChild(new TextBox(this.y/GRID, tileContents));
       else if (curScene.lastChild != player && tileContents < 0)
          curScene.removeChild(curScene.lastChild);
-      else if (curScene.lastChild != player && (tileContents >= 7 && tileContents < 14 || tileContents == 1))
+      else if (curScene.lastChild != player && (tileContents >= 7 && tileContents < 21))
          curScene.lastChild.changeText(tileContents);
    },
    
@@ -402,6 +414,8 @@ Player = Class.create(Sprite, {
          if (player.health < metrics.minHealth)
             metrics.minHealth = player.health;
       }
+      
+      game.itemBreak(player.shield);
    }
 });
 
@@ -1025,6 +1039,8 @@ Enemy = Class.create(Group, {
                   this.sprite.image = game.assets["assets/images/monster2poison.gif"];
             }
             
+            game.itemBreak(player.sword);
+            
             if (dmg == 0) 
                metrics.enemyMisses++;
             else
@@ -1065,6 +1081,8 @@ window.onload = function() {
                 "assets/images/dialogue.png",
                 "assets/sounds/sword_swing.wav",
                 "assets/sounds/grunt.wav",
+                "assets/sounds/swap.wav",
+                "assets/sounds/shatter.wav",
                 "assets/sounds/select1.wav",
                 "assets/sounds/select2.wav");
                 
@@ -1207,6 +1225,7 @@ window.onload = function() {
       var randomNumber = Math.floor(Math.random() * 10000);
       console.log("AUD Seed = " + randomNumber);
       aud.generatePattern(0.6, 0.3, 4, 4, randomNumber);
+      aud.setVolume(0.5);
       aud.togglePlay();
          
       curScene.addChild(map);
@@ -1509,6 +1528,8 @@ window.onload = function() {
     *    item = frame number of the item that was picked up
     */
    game.processPickup = function(item) {
+      var newSound = game.assets['assets/sounds/swap.wav'].clone();
+   
       if (item == POTION) {
          map.items.tiles[player.y/GRID][player.x/GRID] = -1;
          player.numPotions++;
@@ -1521,14 +1542,6 @@ window.onload = function() {
          map.items.tiles[player.y/GRID][player.x/GRID] = -1;
          player.hasOrb = true;
          aud.adaptPattern(0.9, 0.7);
-      }
-      else if (item == 1) {   // Default sword
-         player.strength = 1;
-         player.defSword = 0;
-         player.walkSpeed = 4;
-         player.swingSpeed = 5;
-         player.maxHealth = 100;
-         player.ability = NO_ABILITY;
       }
       else if (item == 7) {   // Normal sword
          player.strength = 7;
@@ -1591,24 +1604,26 @@ window.onload = function() {
       else if (item == 15)
          player.defShield = 2;
       else if (item == 16)
-         player.defShield = 4;
+         player.defShield = 3;
       else if (item == 17)
-         player.defShield = 6;
+         player.defShield = 4;
       else if (item == 18)
-         player.defShield = 9;
+         player.defShield = 5;
       else if (item == 19)
-         player.defShield = 12;
+         player.defShield = 6;
       else if (item == 20)
-         player.defShield = 15;
+         player.defShield = 7;
          
       if (player.health > player.maxHealth)
          player.health = player.maxHealth;
          
-      if (item >= 7 && item < 14 || item == 1) {
-         map.items.tiles[player.y/GRID][player.x/GRID] = player.sword;
+      if (item >= 7 && item < 14) {
+         newSound.play();
+         map.items.tiles[player.y/GRID][player.x/GRID] = player.sword == 1 ? -1 : player.sword;
          player.sword = item;
       }
       else if (item >= 14 && item < 21) {
+         newSound.play();
          map.items.tiles[player.y/GRID][player.x/GRID] = player.shield;
          player.shield = item;
       }
@@ -1619,17 +1634,49 @@ window.onload = function() {
    }, 
    
    /*
+    * Returns true or false if the sword or shield broke. The chance of an item
+    * breaking depends on how long the player has held the orb.
+    * Parameters:
+    *    item = the frame of the item that could break
+    */
+   game.itemBreak = function (item) {
+      var didBreak = false;
+      var newSound;
+      
+      if (Math.random() < 0.2 && item >= 7 && item < 21) {  // ***VARY*** Use a value based on the time the player held the pearl
+         didBreak = true;
+         newSound = game.assets['assets/sounds/shatter.wav'].clone();
+         newSound.play();
+         
+         if (item < 14) {  // Sword
+            player.strength = 3;
+            player.defSword = 0;
+            player.walkSpeed = 4;
+            player.swingSpeed = 5;
+            player.maxHealth = 100;
+            player.ability = NO_ABILITY;
+            player.sword = 1;
+         }
+         else {   // Shield
+            player.defShield = 0;
+            player.shield = -1;
+         }
+         
+         player.defense = player.defSword + player.defShield;
+      }
+      
+      return didBreak;
+   }
+   
+   /*
     * Returns the frame of a random item (change constants to vary probability)
-    * Currently, key = 40%, potion = 30%, sword = 20%, shield = 10%
+    * Currently, key = 40%, potion = 30%, sword = 15%, shield = 15%
     * Parameters:
     *    wantOrb = true if there is a possibility of returning the orb
     */
    game.getRandomItem = function(wantOrb) {                                                                       //***VARY***
-      var itemFrame, swordFrame, shieldFrame;
+      var itemFrame;
       var randomNum = Math.random();
-   
-      swordFrame = Math.floor(Math.random() * 7) + 7;
-      shieldFrame = Math.floor(Math.random() * 2) + 14 + 0; //  *2 = range, +0 = offset
    
       if (wantOrb && !player.seenOrb && Math.random() < sceneList.length/minRooms) {
          itemFrame = ORB;
@@ -1639,11 +1686,9 @@ window.onload = function() {
          itemFrame = KEY;
       else if (randomNum < 0.7)
          itemFrame = POTION;
-      else if (randomNum < 0.9)
-         itemFrame = swordFrame;
       else
-         itemFrame = shieldFrame;
-      
+         itemFrame = Math.floor(Math.random() * 14) + 7;
+                              
       return itemFrame;
    },
    
