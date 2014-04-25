@@ -33,7 +33,12 @@ var NO_ABILITY = 1;     /* Constants for sword abilities */
 var ICE_ABILITY = 2;
 var POISON_ABILITY = 3;
 
-var ENEMIES = 3   /* Index of the EnemyGroup child in the scene */
+var ENEMIES = 3;   /* Index of the EnemyGroup child in the scene */
+
+var MIN_STRESS = 0.3;   /* Minimum and maximum stress and energy values for AUD */
+var MAX_STRESS = 0.9;
+var MIN_ENERGY = 0.2;
+var MAX_ENERGY = 0.8;
 
 /* These variables keep track of the current room's info. These are updated
  * when the room changes */
@@ -44,8 +49,6 @@ var player;
 var sceneList = Array();
 var minRooms = 10; // Make this value an input from the user                                                          //***VARY***
 var exitPlaced = false; // Keeps track if the exit portal has been placed in the level
-
-var metrics = new Metrics();
 
 /* Generic function that creates a label */
 var createLabel = function(text, x, y, font, color) {
@@ -229,9 +232,14 @@ Player = Class.create(Sprite, {
          this.checkChest();
       }
          
-      /* Update average health and total time metrics */
-      if (this.age % game.fps == 0)
-         metrics.updateAvgHealthPerSec(this.health);
+      /* Update music based on fortune */
+      if (this.age % (game.fps*3) == 0) {
+         var newStress = (1-metrics.fortune) * (MAX_STRESS-MIN_STRESS) + MIN_STRESS;
+         var newEnergy = (1-metrics.fortune) * (MAX_ENERGY-MIN_ENERGY) + MIN_ENERGY;
+         aud.adaptPattern(newStress, newEnergy);
+//          metrics.updateAvgHealthPerSec(this.health);
+      }
+
    },
    
    /* Add a text box if the player is standing on an item */
@@ -1229,7 +1237,7 @@ window.onload = function() {
          
       var randomNumber = Math.floor(Math.random() * 10000);
       console.log("AUD Seed = " + randomNumber);
-      aud.generatePattern(0.6, 0.3, 4, 4, randomNumber);
+      aud.generatePattern(MIN_STRESS, MIN_ENERGY, 4, 4, randomNumber);
       aud.setVolume(0.5);
       aud.togglePlay();
          
@@ -1546,12 +1554,12 @@ window.onload = function() {
       else if (item == ORB) {
          map.items.tiles[player.y/GRID][player.x/GRID] = -1;
          player.hasOrb = true;
-         aud.adaptPattern(0.9, 0.7);
+         metrics.takeOrb();
       }
       else if (item == -1 && player.hasOrb) {
          map.items.tiles[player.y/GRID][player.x/GRID] = ORB;
          player.hasOrb = false;
-         aud.adaptPattern(0.6, 0.3);
+         metrics.dropOrb();
       }
       else if (item == 7) {   // Normal sword
          player.strength = 7;
@@ -1732,7 +1740,7 @@ window.onload = function() {
          aud.togglePause();
    
       metrics.calculateAverages();
-      metrics.printMetrics();
+      metrics.endLevel();
    
       var results = new Scene();
       results.backgroundColor = "black"

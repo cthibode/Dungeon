@@ -3,7 +3,7 @@
  * used to determine the player's play style and create a new room/level
  * based on that play style.
  */
-var Metrics = function() {
+var metrics = new function() {
    this.gameInit = function() {
       this.numLevels = 0;
       this.TAdmgDealtPerRoom = 0;
@@ -34,13 +34,14 @@ var Metrics = function() {
       this.potionsUsed = 0;
       this.maxHealth = playerHealth;
       this.minHealth = playerHealth;
-      this.avgHealth = playerHealth;
+      this.avgHealth = playerHealth;   // NOT USED CURRENTLY
       this.roomsVisited = 1;
       this.doorsEntered = 0;  
       this.stepsTaken = 0;
-      this.time = 0;
       
-      /* Average metrics that are computed using the previous values */
+      /* Average/other metrics that should not be altered manually */
+      this.time = 0;
+      this.timeWithOrb = 0;
       this.timePerRoom = 0;
       this.dmgDealtPerRoom = 0;
       this.dmgTakenPerRoom = 0;
@@ -56,8 +57,35 @@ var Metrics = function() {
       // Add more metrics about number of rooms visited in relation to the minimum number of rooms
       // Add metrics relating to number of keys held, total chests, chests opened
       
+      /* The fortune variable determines how well things go for the player. It decreases as the
+         player holds the orb and increases as the player is not holding the orb (0-1) */
+      this.fortune = 1;
+      
+      this.clock = setInterval(function() {
+         ++metrics.time;
+      }, 1000);
+      
       this.numLevels++;
    };
+   
+   /* Starts to slowly reduce fortune. Call when the player picks up the orb */
+   this.takeOrb = function() {
+      clearInterval(this.clockOrb);
+      this.clockOrb = setInterval(function() {
+         ++metrics.timeWithOrb;
+         if (metrics.fortune > 0)
+            metrics.fortune -= 0.02;
+      }, 1000);
+   }
+   
+   /* Starts to slowly increase fortune. Call when the player drops the orb */
+   this.dropOrb = function() {
+      clearInterval(this.clockOrb);
+      this.clockOrb = setInterval(function() {
+         if (metrics.fortune < 1)
+            metrics.fortune += 0.02;
+      }, 1000);
+   }
    
    /* 
     * Updates the running average health and increments the time. Must be called once
@@ -65,10 +93,11 @@ var Metrics = function() {
     * Parameters:
     *    curHealth = the health value to add to the average
     */
-   this.updateAvgHealthPerSec = function(curHealth) {
-      this.avgHealth += (curHealth - this.avgHealth) / ++this.time;
-      this.avgHealth = Math.round(this.avgHealth * 10) / 10;
-   };
+//    this.updateAvgHealthPerSec = function() {
+//       var curHealth = 100;
+//       this.avgHealth += (curHealth - this.avgHealth) / ++this.time;
+//       this.avgHealth = Math.round(this.avgHealth * 10) / 10;
+//    };
    
    /* Calculate running average values across all previous levels. Call when the 
     * level is over to add the just completed level to the average.
@@ -113,9 +142,12 @@ var Metrics = function() {
    };
 
    /*
-    * Print the metric values to the console.
+    * End the level: stop the clocks and print the metric values to the console.
     */
-   this.printMetrics = function() {
+   this.endLevel = function() {
+      clearInterval(this.clock);
+      clearInterval(this.clockOrb);
+   
       console.log("---LEVEL METRICS---");
       console.log("Strength: " + this.str);
       console.log("Strength change: " + (this.str-this.strAtStart));
@@ -135,6 +167,8 @@ var Metrics = function() {
       console.log("Rooms visited: " + this.roomsVisited);
       console.log("Steps taken: " + this.stepsTaken);
       console.log("Total time (seconds): " + this.time);
+      console.log("Time with orb (seconds): " + this.timeWithOrb);
+      console.log("Fortune: " + this.fortune);
       console.log("---LEVEL AVERAGES---");
       console.log("Damage dealt per Room: " + this.dmgDealtPerRoom);
       console.log("Damage taken per Room: " + this.dmgTakenPerRoom);
