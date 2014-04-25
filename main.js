@@ -116,6 +116,8 @@ Hud = Class.create(Group, {
       this.defense.text = "Def: " + player.defense;
       if (player.hasOrb)
          this.orb.frame = ORB;
+      else
+         this.orb.frame = -1;
    }
 });
 
@@ -248,8 +250,7 @@ Player = Class.create(Sprite, {
    checkItem: function() {
       var tileContents = map.items.checkTile(this.x, this.y);
       
-      if (this.cooldown == 0 && game.input.swapItem && tileContents > 0 || 
-          tileContents == POTION || tileContents == KEY || tileContents == ORB) {
+      if (this.cooldown == 0 && game.input.swapItem || tileContents == POTION || tileContents == KEY) {
          game.processPickup(tileContents);
          metrics.str = player.strength;
          metrics.def = player.defense;
@@ -1123,7 +1124,7 @@ window.onload = function() {
       var controlsDetails = createLabel("W,A,S,D - Move<br>" +
                                         "I,J,K,L - Attack<br>" +
                                         "N - Use health potion<br>" +
-                                        "M - Swap item<br>" +
+                                        "M - Swap item, drop or pick up pearl<br>" +
                                         "Space - Unlock chest",
                                         50, 110, "14px sans-serif");
       var controlsToMenu = createLabel("Press space to return to menu", 50, WINDOW-50, "14px sans-serif");
@@ -1547,6 +1548,11 @@ window.onload = function() {
          player.hasOrb = true;
          aud.adaptPattern(0.9, 0.7);
       }
+      else if (item == -1 && player.hasOrb) {
+         map.items.tiles[player.y/GRID][player.x/GRID] = ORB;
+         player.hasOrb = false;
+         aud.adaptPattern(0.6, 0.3);
+      }
       else if (item == 7) {   // Normal sword
          player.strength = 7;
          player.defSword = 0;
@@ -1674,7 +1680,7 @@ window.onload = function() {
    
    /*
     * Returns the frame of a random item (change constants to vary probability)
-    * Currently, key = 40%, potion = 30%, sword = 15%, shield = 15%
+    * Currently, key = 40%, potion = 24%, sword = 18%, shield = 18%
     * Parameters:
     *    wantOrb = true if there is a possibility of returning the orb
     */
@@ -1688,7 +1694,7 @@ window.onload = function() {
       }
       else if (randomNum < 0.4)
          itemFrame = KEY;
-      else if (randomNum < 0.7)
+      else if (randomNum < 0.64)
          itemFrame = POTION;
       else
          itemFrame = Math.floor(Math.random() * 14) + 7;
