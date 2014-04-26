@@ -28,8 +28,10 @@ var metrics = new function() {
       this.enemiesKilled = 0;
       this.enemyHits = 0;
       this.enemyMisses = 0;
-      this.enemyEncounters = 0;
-      this.totalEnemies = 0;
+      this.fastEnemyEncounters = 0;    //NEW
+      this.strongEnemyEncounters = 0;  //NEW
+      this.totalFastEnemies = 0;       //NEW
+      this.totalStrongEnemies = 0;     //NEW
       this.potionsHeld = numPotions;
       this.potionsUsed = 0;
       this.maxHealth = playerHealth;
@@ -110,21 +112,24 @@ var metrics = new function() {
     * Calculate the metrics for averages based on the raw data collected.
     */
    this.calculateAverages = function() {
+      var totEncounters = this.strongEnemyEncounters + this.fastEnemyEncounters;
+      var totEnemies = this.totalStrongEnemies + this.totalFastEnemies;
+   
       this.dmgDealtPerRoom = Math.round(this.dmgDealt / this.roomsVisited * 10) / 10;
       this.dmgTakenPerRoom = Math.round(this.dmgTaken / this.roomsVisited * 10) / 10;
-      this.dmgDealtPerEnemy = Math.round(this.dmgDealt / this.totalEnemies * 10) / 10;
-      this.dmgTakenPerEnemy = Math.round(this.dmgTaken / this.totalEnemies * 10) / 10;
-      if (this.enemyEncounters == 0) {
+      this.dmgDealtPerEnemy = Math.round(this.dmgDealt / totEnemies * 10) / 10;
+      this.dmgTakenPerEnemy = Math.round(this.dmgTaken / totEnemies * 10) / 10;
+      if (totEncounters == 0) {
          this.dmgDealtPerEncounter = 0;
          this.dmgTakenPerEncounter = 0;
          this.killedToEncounteredRatio = 0;
       }
       else {
-         this.dmgDealtPerEncounter = Math.round(this.dmgDealt / this.enemyEncounters * 10) / 10;
-         this.dmgTakenPerEncounter = Math.round(this.dmgTaken / this.enemyEncounters * 10) / 10;
-         this.killedToEncounteredRatio = Math.round(this.enemiesKilled / this.enemyEncounters * 100) / 100;
+         this.dmgDealtPerEncounter = Math.round(this.dmgDealt / totEncounters * 10) / 10;
+         this.dmgTakenPerEncounter = Math.round(this.dmgTaken / totEncounters * 10) / 10;
+         this.killedToEncounteredRatio = Math.round(this.enemiesKilled / totEncounters * 100) / 100;
       }
-      this.enemiesFoughtRatio = Math.round(this.enemyEncounters / this.totalEnemies * 100)/ 100;
+      this.enemiesFoughtRatio = Math.round(totEncounters / totEnemies * 100)/ 100;
       this.hitsPerKill = this.enemiesKilled == 0 ? 0 : Math.round(this.enemyHits / this.enemiesKilled * 10) / 10;
       this.accuracy = this.enemyHits == 0 && this.enemyMisses == 0 ? 0 : Math.round(this.enemyHits / (this.enemyHits + this.enemyMisses) * 100) / 100;
       this.timePerRoom = Math.round(this.time / this.roomsVisited * 10) / 10;
@@ -149,22 +154,25 @@ var metrics = new function() {
       clearInterval(this.clockOrb);
    
       console.log("---LEVEL METRICS---");
-      console.log("Strength: " + this.str);
-      console.log("Strength change: " + (this.str-this.strAtStart));
-      console.log("Defense: " + this.def);
-      console.log("Defense change: " + (this.def-this.defAtStart));
-      console.log("Damage dealt: " + this.dmgDealt);
-      console.log("Damage taken: " + this.dmgTaken);
-      console.log("Enemies killed: " + this.enemiesKilled + " out of " + this.totalEnemies);
+//       console.log("Strength: " + this.str);
+//       console.log("Strength change: " + (this.str-this.strAtStart));
+//       console.log("Defense: " + this.def);
+//       console.log("Defense change: " + (this.def-this.defAtStart));
+//       console.log("Damage dealt: " + this.dmgDealt);
+//       console.log("Damage taken: " + this.dmgTaken);
+      console.log("Total Strong Enemies: " + this.totalStrongEnemies);
+      console.log("Total Fast Enemies: " + this.totalFastEnemies);
+      console.log("Enemies killed: " + this.enemiesKilled + " out of " + (this.totalStrongEnemies + this.totalFastEnemies));
       console.log("Enemy hits: " + this.enemyHits);
       console.log("Enemy misses: " + this.enemyMisses);
-      console.log("Enemy encounters: " + this.enemyEncounters);
-      console.log("Potions held: " + this.potionsHeld);
-      console.log("Potions used: " + this.potionsUsed);
-      console.log("Max health: " + this.maxHealth);
-      console.log("Min health: " + this.minHealth);
-      console.log("Avg health: " + this.avgHealth);
-      console.log("Rooms visited: " + this.roomsVisited);
+      console.log("Strong Enemy Encounters: " + this.strongEnemyEncounters);
+      console.log("Fast Enemy Encounters: " + this.fastEnemyEncounters);
+//       console.log("Potions held: " + this.potionsHeld);
+//       console.log("Potions used: " + this.potionsUsed);
+//       console.log("Max health: " + this.maxHealth);
+//       console.log("Min health: " + this.minHealth);
+//       console.log("Avg health: " + this.avgHealth);
+//       console.log("Rooms visited: " + this.roomsVisited);
       console.log("Steps taken: " + this.stepsTaken);
       console.log("Total time (seconds): " + this.time);
       console.log("Time with orb (seconds): " + this.timeWithOrb);
@@ -181,7 +189,7 @@ var metrics = new function() {
       console.log("Sword hits per kill: " + this.hitsPerKill);
       console.log("Accuracy: " + this.accuracy * 100 + "%");
       console.log("Time per Room: " + this.timePerRoom);
-      console.log("Steps per Room: " + this.stepsPerRoom);
+//       console.log("Steps per Room: " + this.stepsPerRoom);
    }
 
 };

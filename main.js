@@ -777,12 +777,15 @@ EnemyGroup = Class.create(Group, {
             
             if (timeout > 0) {
                /* Determine which enemy type to place */
-               if (Math.floor(Math.random() * 2) == 0)                                                                  //***VARY***
+               if (Math.floor(Math.random() * 2) == 0) {                                                                //***VARY***
                   this.addChild(new Enemy(x, y, room, "monster1.gif"));
-               else
+                  metrics.totalStrongEnemies++;
+               }
+               else {
                   this.addChild(new Enemy(x, y, room, "monster2.gif"));
+                  metrics.totalFastEnemies++;
+               }
                this.numEnemies++;
-               metrics.totalEnemies++;
             }               
          }
       } 
@@ -953,7 +956,10 @@ Enemy = Class.create(Group, {
                else if (this.sprite.x < player.x)
                   this.sprite.scaleX = -1;
                if (!this.hadEncounter) {
-                  metrics.enemyEncounters++;
+                  if (this.type == "monster1.gif")
+                     metrics.strongEnemyEncounters++;
+                  else if (this.type == "monster2.gif")
+                     metrics.fastEnemyEncounters++;
                   this.hadEncounter = true;
                }
                player.takeDamage(game.getDamage(this.strength, player.defense, this.accuracy));
@@ -1059,7 +1065,10 @@ Enemy = Class.create(Group, {
             else
                metrics.enemyHits++;
             if (!this.hadEncounter) {
-               metrics.enemyEncounters++;
+               if (this.type == "monster1.gif")
+                  metrics.strongEnemyEncounters++;
+               else if (this.type == "monster2.gif")
+                  metrics.fastEnemyEncounters++;
                this.hadEncounter = true;
             }
          }  
@@ -1757,7 +1766,6 @@ window.onload = function() {
                                     "Defense change: " + (metrics.def-metrics.defAtStart) + "<br>" +
                                     "Damage dealt: " + metrics.dmgDealt + "<br>" +
                                     "Damage taken: " + metrics.dmgTaken + "<br>" +
-                                    "Enemies killed: " + metrics.enemiesKilled + " out of " + metrics.totalEnemies + "<br>" +
                                     "Potions held: " + metrics.potionsHeld + "<br>" +
                                     "Potions used: " + metrics.potionsUsed + "<br>" +
                                     "Max health: " + metrics.maxHealth + "<br>" +
