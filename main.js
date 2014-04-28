@@ -152,7 +152,7 @@ TextBox = Class.create(Group, {
       else if (itemNum == 8)
          this.desc.text = "Sword of Ice: Attack +4, Health -25,<br>Slows enemies on hit";
       else if (itemNum == 9)
-         this.desc.text = "Sword of Earth: Attack +4, Defense +3, <br>Attack Speed x0.5";
+         this.desc.text = "Sword of Earth: Attack +4, Defense +3, <br>Attack Speed x0.67";
       else if (itemNum == 10)
          this.desc.text = "Sword of Light: Attack +0, Walking Speed x2";
       else if (itemNum == 11)
@@ -160,7 +160,7 @@ TextBox = Class.create(Group, {
       else if (itemNum == 12)
          this.desc.text = "Sword of Poison: Attack -1, Poisons enemies on hit";
       else if (itemNum == 13)
-         this.desc.text = "Sword of Water: Attack +0, Attack Speed x1.2, <br>Health +10";
+         this.desc.text = "Sword of Water: Attack +0, Attack Speed x1.25, <br>Health +10";
       else if (itemNum == 14)
          this.desc.text = "Toy Shield: Defense +1";
       else if (itemNum == 15)
@@ -205,7 +205,6 @@ Player = Class.create(Sprite, {
       this.strength = 3;
       this.shield = -1;
       this.defense = this.defSword = this.defShield = 0;
-      this.accuracy = 0.8;
       this.health = 100;
       this.maxHealth = 100;
       this.numPotions = 0;
@@ -213,7 +212,7 @@ Player = Class.create(Sprite, {
       
       /* Character stats only altered by swords */
       this.walkSpeed = 4;
-      this.swingSpeed = 5;
+      this.swingSpeedMult = 1;
       this.ability = NO_ABILITY;
       
       /* Variable to keep track if the player is holding the pearl/orb */
@@ -232,10 +231,10 @@ Player = Class.create(Sprite, {
          this.checkChest();
       }
          
-      /* Update music based on fortune */
+      /* Update music based on misfortune */
       if (this.age % (game.fps*3) == 0) {
-         var newStress = (1-metrics.fortune) * (MAX_STRESS-MIN_STRESS) + MIN_STRESS;
-         var newEnergy = (1-metrics.fortune) * (MAX_ENERGY-MIN_ENERGY) + MIN_ENERGY;
+         var newStress = metrics.misfortune * (MAX_STRESS-MIN_STRESS) + MIN_STRESS;
+         var newEnergy = metrics.misfortune * (MAX_ENERGY-MIN_ENERGY) + MIN_ENERGY;
          aud.adaptPattern(newStress, newEnergy);
 //          metrics.updateAvgHealthPerSec(this.health);
       }
@@ -344,7 +343,7 @@ Player = Class.create(Sprite, {
 
       if (this.isAttacking) {
          this.frame = this.direction * 9 + 6 + (this.attackCounter > 2 ? 2 : this.attackCounter);
-         if (++this.attackCounter > this.swingSpeed) {
+         if (++this.attackCounter > metrics.getPlayerAttackSpeed() * this.swingSpeedMult) {
             this.attackCounter = 0;
             this.isAttacking = false;
          }
@@ -842,7 +841,6 @@ Enemy = Class.create(Group, {
          this.hpDisplay = createLabel(this.health + "/" + this.maxHealth, this.sprite.x, 
                                    this.sprite.y+20, "10px sans-serif", "rgb(200,200,200)");
       }
-      this.accuracy = 1;
       
       /* Real time movement fields */
       this.turnTime = Math.floor(Math.random() * this.turnTimeMax/2);
@@ -864,6 +862,7 @@ Enemy = Class.create(Group, {
 
       /* Metric helper fields */
       this.hadEncounter = false;
+      this.didDamage = false;
    },
    
    onenterframe: function() {
@@ -920,7 +919,7 @@ Enemy = Class.create(Group, {
             this.hpDisplay.opacity = (this.hpDisplay.opacity - 0.04).toFixed(2);
             if (this.sprite.opacity == 0) {
                map.editCollision(this.sprite.y/GRID, this.sprite.x/GRID, 0);
-               if (Math.floor(Math.random() * 8) == 0) { // 1/8 chance of an item drop                                  //***VARY***
+               if (Math.random() < metrics.getEnemyDropChance()) {
                   map.items.tiles[this.sprite.y/GRID][this.sprite.x/GRID] = game.getRandomItem(false);
                   map.items.loadData(map.items.tiles);
                }
@@ -938,7 +937,7 @@ Enemy = Class.create(Group, {
          return;
             
       /* If the player is in range of the enemy's sight, try to find a path to the player */
-      if (this.sprite.within(player, GRID*3) && this.health > 0) {                                                      //***VARY***
+      if (this.sprite.within(player, GRID * metrics.getSightRadius()) && this.health > 0) {                                                      //***VARY***
          this.pathFinder.setGrid(map.collision);
          this.pathFinder.findPath(this.sprite.x/GRID, this.sprite.y/GRID, player.x/GRID, player.y/GRID, function(path) {
             if (path != null && path.length > 1) {
@@ -955,6 +954,14 @@ Enemy = Class.create(Group, {
                   this.sprite.scaleX = 1;
                else if (this.sprite.x < player.x)
                   this.sprite.scaleX = -1;
+                  
+               if (!this.didDamage) {
+                  player.takeDamage(game.getDamage(this.strength, player.defense, 1));
+                  this.didDamage = true;
+               }
+               else
+                  player.takeDamage(game.getDamage(this.strength, player.defense, metrics.getEnemyAccuracy()));
+                  
                if (!this.hadEncounter) {
                   if (this.type == "monster1.gif")
                      metrics.strongEnemyEncounters++;
@@ -962,9 +969,6 @@ Enemy = Class.create(Group, {
                      metrics.fastEnemyEncounters++;
                   this.hadEncounter = true;
                }
-               player.takeDamage(game.getDamage(this.strength, player.defense, this.accuracy));
-               if (this.accuracy == 1)
-                  this.accuracy = 0.8;
             }
             /* Otherwise, move towards player */
             else {
@@ -1032,7 +1036,7 @@ Enemy = Class.create(Group, {
              (player.direction == P_RIGHT && this.sprite.x == player.x+GRID && this.sprite.y == player.y) ||
              (player.direction == P_UP && this.sprite.x == player.x && this.sprite.y == player.y-GRID) ||
              (player.direction == P_DOWN && this.sprite.x == player.x && this.sprite.y == player.y+GRID)) {
-            dmg = game.getDamage(player.strength, this.defense, player.accuracy);
+            dmg = game.getDamage(player.strength, this.defense, metrics.getPlayerAccuracy());
             this.health -= dmg
             
             if (player.ability == ICE_ABILITY) {
@@ -1244,12 +1248,11 @@ window.onload = function() {
       else
          map = new Room(0, null, 0, 0, 0);
          
-      var randomNumber = Math.floor(Math.random() * 10000);
-      console.log("AUD Seed = " + randomNumber);
-      aud.generatePattern(MIN_STRESS, MIN_ENERGY, 4, 4, randomNumber);
+      aud.generatePattern(MIN_STRESS, MIN_ENERGY, 4, 4, Math.floor(Math.random() * 10000));
       aud.setVolume(0.5);
       aud.togglePlay();
          
+      metrics.levelInit(player.strength, player.defense, player.health, player.numPotions);
       curScene.addChild(map);
       curScene.addChild(new Hud());
       curScene.addChild(map.chests);
@@ -1257,7 +1260,6 @@ window.onload = function() {
       curScene.addChild(new EnemyGroup(0, map, UP));
       curScene.addChild(player);      
       sceneList.push(curScene);
-      metrics.levelInit(player.strength, player.defense, player.health, player.numPotions);
       player.age = 0;
       exitPlaced = false;
       
@@ -1574,7 +1576,7 @@ window.onload = function() {
          player.strength = 7;
          player.defSword = 0;
          player.walkSpeed = 4;
-         player.swingSpeed = 5;
+         player.swingSpeedMult = 1;
          player.maxHealth = 100;
          player.ability = NO_ABILITY;
       }
@@ -1582,7 +1584,7 @@ window.onload = function() {
          player.strength = 7;
          player.defSword = 0;
          player.walkSpeed = 4;
-         player.swingSpeed = 5;
+         player.swingSpeedMult = 1;
          player.maxHealth = 75;
          player.ability = ICE_ABILITY;
       }
@@ -1590,7 +1592,7 @@ window.onload = function() {
          player.strength = 7;
          player.defSword = 3;
          player.walkSpeed = 4;
-         player.swingSpeed = 10;
+         player.swingSpeedMult = 1.5;
          player.maxHealth = 100;
          player.ability = NO_ABILITY;
       }
@@ -1598,7 +1600,7 @@ window.onload = function() {
          player.strength = 3;
          player.defSword = 0;
          player.walkSpeed = 8;
-         player.swingSpeed = 5;
+         player.swingSpeedMult = 1;
          player.maxHealth = 100;
          player.ability = NO_ABILITY;
       }
@@ -1606,7 +1608,7 @@ window.onload = function() {
          player.strength = 10;
          player.defSword = -2;
          player.walkSpeed = 4;
-         player.swingSpeed = 5;
+         player.swingSpeedMult = 1;
          player.maxHealth = 90;
          player.ability = NO_ABILITY;
       }
@@ -1614,7 +1616,7 @@ window.onload = function() {
          player.strength = 2;
          player.defSword = 0;
          player.walkSpeed = 4;
-         player.swingSpeed = 5;
+         player.swingSpeedMult = 1;
          player.maxHealth = 100;
          player.ability = POISON_ABILITY;
       }
@@ -1622,7 +1624,7 @@ window.onload = function() {
          player.strength = 3;
          player.defSword = 0;
          player.walkSpeed = 4;
-         player.swingSpeed = 4;
+         player.swingSpeedMult = 0.8;
          player.maxHealth = 110;
          player.ability = NO_ABILITY;
       }
@@ -1670,7 +1672,7 @@ window.onload = function() {
       var didBreak = false;
       var newSound;
       
-      if (Math.random() < 0.01 && item >= 7 && item < 21) {  // ***VARY*** Use a value based on the time the player held the pearl
+      if (Math.random() < metrics.getBreakChance() && item >= 7 && item < 21) {
          didBreak = true;
          newSound = game.assets['assets/sounds/shatter.wav'].clone();
          newSound.play();
@@ -1679,7 +1681,7 @@ window.onload = function() {
             player.strength = 3;
             player.defSword = 0;
             player.walkSpeed = 4;
-            player.swingSpeed = 5;
+            player.swingSpeedMult = 1;
             player.maxHealth = 100;
             player.ability = NO_ABILITY;
             player.sword = 1;

@@ -19,10 +19,10 @@ var metrics = new function() {
     */
    this.levelInit = function(playerStr, playerDef, playerHealth, numPotions) {
       /* Raw data metrics that should be collected during gameplay */
-      this.str = playerStr;
-      this.strAtStart = playerStr;
-      this.def = playerDef;
-      this.defAtStart = playerDef;
+      this.str = playerStr;            // NEEDED?
+      this.strAtStart = playerStr;     // NEEDED?
+      this.def = playerDef;            // NEEDED?
+      this.defAtStart = playerDef;     // NEEDED?
       this.dmgDealt = 0;
       this.dmgTaken = 0;
       this.enemiesKilled = 0;
@@ -32,8 +32,8 @@ var metrics = new function() {
       this.strongEnemyEncounters = 0;  //NEW
       this.totalFastEnemies = 0;       //NEW
       this.totalStrongEnemies = 0;     //NEW
-      this.potionsHeld = numPotions;
-      this.potionsUsed = 0;
+      this.potionsHeld = numPotions;   //NEEDED?
+      this.potionsUsed = 0;            //NEEDED?
       this.maxHealth = playerHealth;
       this.minHealth = playerHealth;
       this.avgHealth = playerHealth;   // NOT USED CURRENTLY
@@ -59,9 +59,9 @@ var metrics = new function() {
       // Add more metrics about number of rooms visited in relation to the minimum number of rooms
       // Add metrics relating to number of keys held, total chests, chests opened
       
-      /* The fortune variable determines how well things go for the player. It decreases as the
-         player holds the orb and increases as the player is not holding the orb (0-1) */
-      this.fortune = 1;
+      /* The misfortune variable determines how well things go for the player. It increases as the
+         player holds the orb and decreases as the player is not holding the orb (0-1) */
+      this.misfortune = 0;
       
       this.clock = setInterval(function() {
          ++metrics.time;
@@ -70,24 +70,76 @@ var metrics = new function() {
       this.numLevels++;
    };
    
-   /* Starts to slowly reduce fortune. Call when the player picks up the orb */
+   /* Starts to slowly increase misfortune. Call when the player picks up the orb */
    this.takeOrb = function() {
       clearInterval(this.clockOrb);
       this.clockOrb = setInterval(function() {
          ++metrics.timeWithOrb;
-         if (metrics.fortune > 0)
-            metrics.fortune -= 0.02;
+         if (metrics.misfortune < 1)
+            metrics.misfortune += 0.02;
       }, 1000);
    }
    
-   /* Starts to slowly increase fortune. Call when the player drops the orb */
+   /* Starts to slowly decrease misfortune. Call when the player drops the orb */
    this.dropOrb = function() {
       clearInterval(this.clockOrb);
       this.clockOrb = setInterval(function() {
-         if (metrics.fortune < 1)
-            metrics.fortune += 0.02;
+         if (metrics.misfortune > 0)
+            metrics.misfortune -= 0.02;
       }, 1000);
    }
+   
+   /* ======================================================================= */
+   /* Below are the functions that return modified values based on misfortune */
+   /* ======================================================================= */
+   
+   /* Returns the interpolated enemy sight radius (# of tiles) */
+   this.getSightRadius = function() {
+      var min = 3;      /* Default Value */
+      var max = 14;
+      return Math.floor((max-min) * this.misfortune + min);
+   }
+   
+   /* Returns the interpolated enemy accuracy (0-1) */
+   this.getEnemyAccuracy = function() {
+      var min = 0.8;    /* Default Value */
+      var max = 1;
+      return (max-min) * this.misfortune + min;
+   }
+   
+   /* Returns the interpolated player accuracy (0-1) */
+   this.getPlayerAccuracy = function() {
+      var min = 0.75;
+      var max = 0.9;    /* Default Value */
+      return (max-min) * (1-this.misfortune) + min;
+   }
+   
+   /* Returns the interpolated sword/shield break chance (0-1) */
+   this.getBreakChance = function() {
+      var min = 0.01;   /* Default Value */
+      var max = 0.1;
+      return (max-min) * this.misfortune + min;
+   }
+   
+   /* Returns the interpolated player attack speed (# of frames) */
+   this.getPlayerAttackSpeed = function() {
+      var min = 5;      /* Default Value */
+      var max = 9;
+      return Math.floor((max-min) * this.misfortune + min);
+   }
+   
+   /* Returns the interpolated chance that an enemy will drop an item (0-1) */
+   this.getEnemyDropChance = function() {
+      var min = 0.15;
+      var max = 0.25;   /* Default Value */
+      return (max-min) * (1-this.misfortune) + min;
+   }
+   
+   this.getObstacleChance = function() {
+      this.calculateAverages();
+      return 1/this.timePerRoom + 0.15;   // Comes out to a value between 0.2 - 0.45
+   };
+   /* ======================================================================= */
    
    /* 
     * Updates the running average health and increments the time. Must be called once
@@ -101,7 +153,8 @@ var metrics = new function() {
 //       this.avgHealth = Math.round(this.avgHealth * 10) / 10;
 //    };
    
-   /* Calculate running average values across all previous levels. Call when the 
+   /* 
+    * Calculate running average values across all previous levels. Call when the 
     * level is over to add the just completed level to the average.
     */
    this.calculateTotalAverages = function() {
@@ -136,16 +189,6 @@ var metrics = new function() {
       this.stepsPerRoom = Math.round(this.stepsTaken / this.roomsVisited * 10) / 10;
    };
 
-   this.getObstacleChance = function() {
-      this.calculateAverages();
-      
-      // Average of 15s per room
-//       var timeWeight = 1 - Math.min(0.8, this.timePerRoom / 15);
-//       var fightWeight = 1 - this.enemiesFoughtRatio + 0.2;
-
-      return 1/this.timePerRoom + 0.15;   // Comes out to a value between 0.2 - 0.45
-   };
-
    /*
     * End the level: stop the clocks and print the metric values to the console.
     */
@@ -176,7 +219,7 @@ var metrics = new function() {
       console.log("Steps taken: " + this.stepsTaken);
       console.log("Total time (seconds): " + this.time);
       console.log("Time with orb (seconds): " + this.timeWithOrb);
-      console.log("Fortune: " + this.fortune);
+      console.log("Misfortune: " + this.misfortune);
       console.log("---LEVEL AVERAGES---");
       console.log("Damage dealt per Room: " + this.dmgDealtPerRoom);
       console.log("Damage taken per Room: " + this.dmgTakenPerRoom);
