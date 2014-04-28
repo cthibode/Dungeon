@@ -5,8 +5,7 @@
  */
 var metrics = new function() {
    this.gameInit = function() {
-      this.numLevels = 0;
-      this.TAdmgDealtPerRoom = 0;
+      this.numLevel = 0;
    }
 
    /*
@@ -67,7 +66,7 @@ var metrics = new function() {
          ++metrics.time;
       }, 1000);
       
-      this.numLevels++;
+      this.numLevel++;
    };
    
    /* Starts to slowly increase misfortune. Call when the player picks up the orb */
@@ -135,9 +134,32 @@ var metrics = new function() {
       return (max-min) * (1-this.misfortune) + min;
    }
    
+   /* Returns the interpolated stress value for AUD music generator */
+   this.getAudStress = function() {
+      var min = 0.3;    /* Default Value */
+      var max = 0.9;
+      return (max-min) * this.misfortune + min;
+   }
+   
+   /* Returns the interpolated energy value for AUD music generator */
+   this.getAudEnergy = function() {
+      var min = 0.2;    /* Default Value */
+      var max = 0.8;
+      return (max-min) * this.misfortune + min;
+   }
+   /* ======================================================================= */
+   /* Below are the functions that return modified values based on (previous) */
+   /* level averages                                                          */
+   /* ======================================================================= */
+   
+   /* Returns the probability of a wall being placed on any given tile. (0-1). 
+      The chance is less for the first level. */
    this.getObstacleChance = function() {
       this.calculateAverages();
-      return 1/this.timePerRoom + 0.15;   // Comes out to a value between 0.2 - 0.45
+      var chance = 1/this.timePerRoom + 0.15;   // Comes out to a value between 0.2 - 0.45
+      if (this.numLevel == 1)
+         chance -= 0.15;
+      return chance;
    };
    /* ======================================================================= */
    
@@ -158,7 +180,7 @@ var metrics = new function() {
     * level is over to add the just completed level to the average.
     */
    this.calculateTotalAverages = function() {
-      this.TAdmgDealtPerRoom += (this.dmgDealtPerRoom - this.TAdmgDealtPerRoom) / this.numLevels;
+      this.TAdmgDealtPerRoom += (this.dmgDealtPerRoom - this.TAdmgDealtPerRoom) / this.numLevel;
    }
    
    /*

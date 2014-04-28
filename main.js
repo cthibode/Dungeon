@@ -35,11 +35,6 @@ var POISON_ABILITY = 3;
 
 var ENEMIES = 3;   /* Index of the EnemyGroup child in the scene */
 
-var MIN_STRESS = 0.3;   /* Minimum and maximum stress and energy values for AUD */
-var MAX_STRESS = 0.9;
-var MIN_ENERGY = 0.2;
-var MAX_ENERGY = 0.8;
-
 /* These variables keep track of the current room's info. These are updated
  * when the room changes */
 var map;
@@ -233,9 +228,7 @@ Player = Class.create(Sprite, {
          
       /* Update music based on misfortune */
       if (this.age % (game.fps*3) == 0) {
-         var newStress = metrics.misfortune * (MAX_STRESS-MIN_STRESS) + MIN_STRESS;
-         var newEnergy = metrics.misfortune * (MAX_ENERGY-MIN_ENERGY) + MIN_ENERGY;
-         aud.adaptPattern(newStress, newEnergy);
+         aud.adaptPattern(metrics.getAudStress(), metrics.getAudEnergy());
 //          metrics.updateAvgHealthPerSec(this.health);
       }
 
@@ -441,12 +434,14 @@ Room = Class.create(Map, {
          this.roomHeight = ROOM_HIG_INIT;
       }
       else {
-         this.roomWidth = Math.floor(Math.random() * (ROOM_WID_MAX - ROOM_WID_MIN + 1)) + ROOM_WID_MIN;
-         this.roomHeight = Math.floor(Math.random() * (ROOM_HIG_MAX - ROOM_HIG_MIN + 1)) + ROOM_HIG_MIN;
-         if (this.roomWidth % 2 == 0)
-            this.roomWidth += Math.random() < 0.5 ? 1 : -1;
-         if (this.roomHeight % 2 == 0)
-            this.roomHeight += Math.random() > 0.5 ? 1 : -1;
+         do {
+            this.roomWidth = Math.floor(Math.random() * (ROOM_WID_MAX - ROOM_WID_MIN + 1)) + ROOM_WID_MIN;
+            this.roomHeight = Math.floor(Math.random() * (ROOM_HIG_MAX - ROOM_HIG_MIN + 1)) + ROOM_HIG_MIN;
+            if (this.roomWidth % 2 == 0)
+               this.roomWidth += Math.random() < 0.5 ? 1 : -1;
+            if (this.roomHeight % 2 == 0)
+               this.roomHeight += Math.random() > 0.5 ? 1 : -1;
+         } while (metrics.numLevel == 1 && (this.roomWidth <= ROOM_WID_INIT || this.roomHeight <= ROOM_HIG_INIT)); 
       }
       
       Map.call(this, GRID, GRID);
@@ -633,21 +628,19 @@ Room = Class.create(Map, {
       var pathFinder = new EasyStar.js();
       var retry = {Value: false};
       var tempTiles = Array(ROOM_HIG_MAX);
-      var numAttempt = -1;
       
       var obstacleChance = metrics.getObstacleChance();
       
       pathFinder.setAcceptableTiles([0, NEXT_LEVEL, NORTH, SOUTH, EAST, WEST, UP, DOWN]);
       do {
          retry.Value = false;
-         numAttempt++;
          
          /* Populate the map with obstacles */
          for (countRow = 0; countRow < ROOM_HIG_MAX; countRow++) {
             tempTiles[countRow] = Array(ROOM_WID_MAX);
             for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
                tempTiles[countRow][countCol] = this.tiles[countRow][countCol];
-               if (tempTiles[countRow][countCol] == 0 && Math.random() < obstacleChance - numAttempt/20) {
+               if (tempTiles[countRow][countCol] == 0 && Math.random() < obstacleChance) {
 //                if (tempTiles[countRow][countCol] == 0 && Math.floor(Math.random() * (10+numAttempt)) == numAttempt) {   //***VARY***
                   tempTiles[countRow][countCol] = 2;
                }
@@ -697,12 +690,11 @@ Room = Class.create(Map, {
             pathFinder.calculate();
          }
          exitCoords.length = 0;
-      } while (retry.Value && numAttempt < 10);
+         
+         obstacleChance *= 0.8;
+      } while (retry.Value);
 
-      if (numAttempt < 10) {    /* Only add the obstacles if a path was found */
-         this.tiles = tempTiles;
-         console.log("Create obstacles on attempt " + numAttempt);
-      }
+      this.tiles = tempTiles;
    },
    
    createFirstRoom: function() {
@@ -1244,15 +1236,17 @@ window.onload = function() {
       if (fromMenu) {
          player = new Player(GRID*(ROOM_WID_MAX-1)/2, GRID*(ROOM_HIG_MAX-1)/2);
          map = new Room(null, null, 0, 0, 0);
+         metrics.gameInit();
       }
       else
          map = new Room(0, null, 0, 0, 0);
          
-      aud.generatePattern(MIN_STRESS, MIN_ENERGY, 4, 4, Math.floor(Math.random() * 10000));
+      metrics.levelInit(player.strength, player.defense, player.health, player.numPotions);
+         
+      aud.generatePattern(metrics.getAudStress(), metrics.getAudEnergy(), 4, 4, Math.floor(Math.random() * 10000));
       aud.setVolume(0.5);
       aud.togglePlay();
          
-      metrics.levelInit(player.strength, player.defense, player.health, player.numPotions);
       curScene.addChild(map);
       curScene.addChild(new Hud());
       curScene.addChild(map.chests);
