@@ -1547,6 +1547,7 @@ window.onload = function() {
     */
    game.processPickup = function(item) {
       var newSound = game.assets['assets/sounds/swap.wav'].clone();
+      newSound.play();
    
       if (item == POTION) {
          map.items.tiles[player.y/GRID][player.x/GRID] = -1;
@@ -1641,12 +1642,10 @@ window.onload = function() {
          player.health = player.maxHealth;
          
       if (item >= 7 && item < 14) {
-         newSound.play();
          map.items.tiles[player.y/GRID][player.x/GRID] = player.sword == 1 ? -1 : player.sword;
          player.sword = item;
       }
       else if (item >= 14 && item < 21) {
-         newSound.play();
          map.items.tiles[player.y/GRID][player.x/GRID] = player.shield;
          player.shield = item;
       }
