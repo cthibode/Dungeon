@@ -6,6 +6,7 @@
 var metrics = new function() {
    this.gameInit = function() {
       this.numLevel = 0;
+      this.timeWithOrb = 0;
    }
 
    /*
@@ -151,6 +152,16 @@ var metrics = new function() {
    /* Below are the functions that return modified values based on (previous) */
    /* level averages                                                          */
    /* ======================================================================= */
+   
+   /* Returns the minimum number of rooms for a level. Call before initializing
+      the next level */
+   this.getMinRooms = function() {
+      var min = 10;
+      var max = 20;
+      var maxTime = 120;   /* The time in seconds at which max will be used */
+      var time = Math.min(this.timeWithOrb, maxTime);
+      return Math.floor((max-min) * (time / maxTime) + min);
+   }
    
    /* Returns the probability of a wall being placed on any given tile. (0-1). 
       The chance is less for the first level. */

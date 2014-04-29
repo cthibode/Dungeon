@@ -42,7 +42,7 @@ var curScene;
 
 var player;
 var sceneList = Array();
-var minRooms = 10; // Make this value an input from the user                                                          //***VARY***
+var minRooms;
 var exitPlaced = false; // Keeps track if the exit portal has been placed in the level
 
 /* Generic function that creates a label */
@@ -1241,8 +1241,9 @@ window.onload = function() {
       else
          map = new Room(0, null, 0, 0, 0);
          
+      minRooms = metrics.getMinRooms();
       metrics.levelInit(player.strength, player.defense, player.health, player.numPotions);
-         
+      
       aud.generatePattern(metrics.getAudStress(), metrics.getAudEnergy(), 4, 4, Math.floor(Math.random() * 10000));
       aud.setVolume(0.5);
       aud.togglePlay();
