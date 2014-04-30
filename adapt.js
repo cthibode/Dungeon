@@ -157,7 +157,7 @@ var metrics = new function() {
    
    /* Returns the minimum number of rooms for a level */
    this.getMinRooms = function() {
-      var min = 10;
+      var min = 10;  /* Default Value */
       var max = 20;
       return Math.floor((max-min) * this.prevOrbTimeRatio + min);
    }
@@ -171,8 +171,8 @@ var metrics = new function() {
       
       /* Calculate the largest possible W/H difference and take a percentage of 
          that based on previous level metrics */
-      var change = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio)) / 2;
-      var diff = Math.round(change * (Math.min(maxWidth, maxHeight) - Math.max(minWidth, minHeight)));
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio)) / 2;
+      var diff = Math.round(chance * (Math.min(maxWidth, maxHeight) - Math.max(minWidth, minHeight)));
 
       do {
          width = Math.floor(Math.random() * (maxWidth - minWidth + 1)) + minWidth;
@@ -188,9 +188,16 @@ var metrics = new function() {
       return dims;
    }
    
+   /* Returns the maximum number of exits for a room */
+   this.getMaxExits = function() {
+      min = 1;
+      max = 4;    /* Default Value */
+      return Math.round((max-min) * (1 - this.prevOrbTimeRatio) + min);
+   }
+   
    /* Returns the maximum amount of enemies for a room */
    this.getMaxEnemies = function() {
-      var min = 5;
+      var min = 5;   /* Default Value */
       var max = 10;
       var chance = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio) + (1 - this.prevStrongKilledRatio)) / 3;
       return Math.round(chance * (max-min) + min);
@@ -198,7 +205,7 @@ var metrics = new function() {
    
    /* Returns the likelihood of a new enemy being a fast enemy */
    this.getFastEnemyChance = function() {
-      var min = 0.5;
+      var min = 0.5; /* Default Value */
       var max = 0.8;
       var chance = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio)) / 2;
       return chance * (max-min) + min;

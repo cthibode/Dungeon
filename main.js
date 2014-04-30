@@ -548,6 +548,9 @@ Room = Class.create(Map, {
    
    /* Randomly create room exits, making sure doors connect. */
    findExits: function(dir, scene) {
+      var exits = Array();
+      var index;
+      
       this.North = Math.floor(Math.random() * 3) > 0 ? true : false;
       this.South = Math.floor(Math.random() * 3) > 0 ? true : false;
       this.East = Math.floor(Math.random() * 3) > 0 ? true : false;
@@ -559,19 +562,43 @@ Room = Class.create(Map, {
          else
             this.Down = true;
       }
-      if (!this.North && !this.South && !this.East && !this.West) {
+      
+      if (!this.North && !this.South && !this.East && !this.West)
          this.North = true;
+      
+      /* Get the right amount of exits */
+      if (this.North && dir != SOUTH)
+         exits.push(NORTH);
+      if (this.South && dir != NORTH)
+         exits.push(SOUTH);
+      if (this.East && dir != WEST)
+         exits.push(EAST);
+      if (this.West && dir != EAST)
+         exits.push(WEST);
+      
+      while (exits.length > metrics.getMaxExits()) {
+         index = Math.floor(Math.random() * exits.length);
+         if (exits[index] == NORTH)
+            this.North = false;
+         if (exits[index] == SOUTH)
+            this.South = false;
+         if (exits[index] == EAST)
+            this.East = false;
+         if (exits[index] == WEST)
+            this.West = false;
+         exits.splice(index, 1);
       }
       
-      if (sceneList.length > minRooms && exitPlaced == true) { /* If base # of rooms visited, make all new rooms dead ends */
+      /* If base number of rooms visited, make all new rooms dead ends */
+      if (sceneList.length > minRooms && exitPlaced == true)
          this.North = this.South = this.East = this.West = false;
-      }
       else if (sceneList.length >= minRooms && exitPlaced == false && dir != UP && dir != DOWN) {
          this.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2] = NEXT_LEVEL;
          this.Up = this.Down = false;
          exitPlaced = true;
       }
             
+      /* Create the exits on the map */
       if (this.North == true || dir == SOUTH) {
          this.tiles[this.wallN][(ROOM_WID_MAX-1)/2] = NORTH;
          if (dir == SOUTH) 
