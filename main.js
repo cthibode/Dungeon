@@ -767,14 +767,15 @@ EnemyGroup = Class.create(Group, {
             
             if (timeout > 0) {
                /* Determine which enemy type to place */
-               if (Math.floor(Math.random() * 2) == 0) {                                                                //***VARY***
-                  this.addChild(new Enemy(x, y, room, "monster1.gif"));
-                  metrics.totalStrongEnemies++;
-               }
-               else {
+               if (Math.random() < metrics.getFastEnemyChance()) {
                   this.addChild(new Enemy(x, y, room, "monster2.gif"));
                   metrics.totalFastEnemies++;
                }
+               else {
+                  this.addChild(new Enemy(x, y, room, "monster1.gif"));
+                  metrics.totalStrongEnemies++;
+               }
+               
                this.numEnemies++;
             }               
          }
@@ -1237,9 +1238,9 @@ window.onload = function() {
       curScene.backgroundColor = "black";
       
       if (fromMenu) {
+         metrics.gameInit();
          player = new Player(GRID*(ROOM_WID_MAX-1)/2, GRID*(ROOM_HIG_MAX-1)/2);
          map = new Room(null, null, 0, 0, 0);
-         metrics.gameInit();
       }
       else
          map = new Room(0, null, 0, 0, 0);
@@ -1310,8 +1311,8 @@ window.onload = function() {
          nextScene.addChild(new Hud());
          nextScene.addChild(nextRoom.chests);
          nextScene.addChild(nextRoom.items);
-         nextScene.addChild(new EnemyGroup(5, nextRoom, dir));                                                          //***VARY***
-         
+         nextScene.addChild(new EnemyGroup(metrics.getMaxEnemies(), nextRoom, dir));
+
          /* Check other rooms for map consistency */
          for (count = 0; count < sceneList.length; count++) {
             toCheck = sceneList[count].firstChild;

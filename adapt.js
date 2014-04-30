@@ -7,6 +7,7 @@ var metrics = new function() {
    this.gameInit = function() {
       this.numLevel = 1;
       this.prevOrbTimeRatio = 0;
+      this.prevStrongKilledRatio = 1;
       this.prevFastKilledRatio = 1;
    }
 
@@ -69,7 +70,7 @@ var metrics = new function() {
       this.clock = setInterval(function() {
          ++metrics.time;
       }, 1000);
-   };
+   }
    
    /* Starts to slowly increase misfortune. Call when the player picks up the orb */
    this.takeOrb = function() {
@@ -170,7 +171,7 @@ var metrics = new function() {
       
       /* Calculate the largest possible W/H difference and take a percentage of 
          that based on previous level metrics */
-      var change = this.prevOrbTimeRatio * (1 - this.prevFastKilledRatio);
+      var change = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio)) / 2;
       var diff = Math.round(change * (Math.min(maxWidth, maxHeight) - Math.max(minWidth, minHeight)));
 
       do {
@@ -187,6 +188,22 @@ var metrics = new function() {
       return dims;
    }
    
+   /* Returns the maximum amount of enemies for a room */
+   this.getMaxEnemies = function() {
+      var min = 5;
+      var max = 10;
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio) + (1 - this.prevStrongKilledRatio)) / 3;
+      return Math.round(chance * (max-min) + min);
+   }
+   
+   /* Returns the likelihood of a new enemy being a fast enemy */
+   this.getFastEnemyChance = function() {
+      var min = 0.5;
+      var max = 0.8;
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio)) / 2;
+      return chance * (max-min) + min;
+   }
+   
    /* Returns the probability of a wall being placed on any given tile. (0-1). 
       The chance is less for the first level. */
    this.getObstacleChance = function() {
@@ -195,7 +212,7 @@ var metrics = new function() {
       if (this.numLevel == 1)
          chance -= 0.15;
       return chance;
-   };
+   }
    /* ======================================================================= */
    
    /* 
@@ -245,7 +262,7 @@ var metrics = new function() {
       this.accuracy = this.enemyHits == 0 && this.enemyMisses == 0 ? 0 : Math.round(this.enemyHits / (this.enemyHits + this.enemyMisses) * 100) / 100;
       this.timePerRoom = Math.round(this.time / this.roomsVisited * 10) / 10;
       this.stepsPerRoom = Math.round(this.stepsTaken / this.roomsVisited * 10) / 10;
-   };
+   }
 
    /*
     * End the level: stop the clocks and print the metric values to the console.
@@ -256,6 +273,7 @@ var metrics = new function() {
       
       var maxTime = 120;   /* The cap orb-held-time to prevent dramatic changes */
       this.prevOrbTimeRatio = Math.min(this.timeWithOrb, maxTime) / maxTime;
+      this.prevStrongKilledRatio = this.strongEnemyKills / this.totalStrongEnemies;
       this.prevFastKilledRatio = this.fastEnemyKills / this.totalFastEnemies;
       
       this.numLevel++;
@@ -302,6 +320,7 @@ var metrics = new function() {
 //       console.log("Steps per Room: " + this.stepsPerRoom);
       console.log("Orb time ratio: " + this.prevOrbTimeRatio);
       console.log("Fast enemies killed to encountered ratio: " + this.prevFastKilledRatio);
+      console.log("Strong enemies killed to encountered ratio: " + this.prevStrongKilledRatio);
    }
 
 };
