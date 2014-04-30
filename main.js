@@ -910,7 +910,8 @@ Enemy = Class.create(Group, {
             this.hpDisplay.opacity = (this.hpDisplay.opacity - 0.04).toFixed(2);
             if (this.sprite.opacity == 0) {
                map.editCollision(this.sprite.y/GRID, this.sprite.x/GRID, 0);
-               if (Math.random() < metrics.getEnemyDropChance()) {
+               if (Math.random() < metrics.getEnemyDropChance() && 
+                   map.items.tiles[this.sprite.y/GRID][this.sprite.x/GRID] == -1) {
                   map.items.tiles[this.sprite.y/GRID][this.sprite.x/GRID] = game.getRandomItem(false);
                   map.items.loadData(map.items.tiles);
                }
