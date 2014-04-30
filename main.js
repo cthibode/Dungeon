@@ -434,14 +434,13 @@ Room = Class.create(Map, {
          this.roomHeight = ROOM_HIG_INIT;
       }
       else {
-         do {
-            this.roomWidth = Math.floor(Math.random() * (ROOM_WID_MAX - ROOM_WID_MIN + 1)) + ROOM_WID_MIN;
-            this.roomHeight = Math.floor(Math.random() * (ROOM_HIG_MAX - ROOM_HIG_MIN + 1)) + ROOM_HIG_MIN;
-            if (this.roomWidth % 2 == 0)
-               this.roomWidth += Math.random() < 0.5 ? 1 : -1;
-            if (this.roomHeight % 2 == 0)
-               this.roomHeight += Math.random() > 0.5 ? 1 : -1;
-         } while (metrics.numLevel == 1 && (this.roomWidth <= ROOM_WID_INIT || this.roomHeight <= ROOM_HIG_INIT)); 
+         var dimensions;
+         if (metrics.numLevel == 1)
+            dimensions = metrics.getRoomDimensions(ROOM_WID_INIT, ROOM_WID_MAX, ROOM_HIG_INIT, ROOM_HIG_MAX);
+         else
+            dimensions = metrics.getRoomDimensions(ROOM_WID_MIN, ROOM_WID_MAX, ROOM_HIG_MIN, ROOM_HIG_MAX);
+         this.roomWidth = dimensions[0];
+         this.roomHeight = dimensions[1];
       }
       
       Map.call(this, GRID, GRID);
@@ -1073,7 +1072,10 @@ Enemy = Class.create(Group, {
       if (this.health <= 0) {
          metrics.dmgDealt += dmg + this.health;
          this.health = 0;
-         metrics.enemiesKilled++;
+         if (this.type == "monster1.gif")
+            metrics.strongEnemyKills++;
+         else if (this.type == "monster2.gif")
+            metrics.fastEnemyKills++;
       }
       else if (dmg != -1) {
          metrics.dmgDealt += dmg;
@@ -1241,8 +1243,9 @@ window.onload = function() {
       else
          map = new Room(0, null, 0, 0, 0);
          
-      minRooms = metrics.getMinRooms();
       metrics.levelInit(player.strength, player.defense, player.health, player.numPotions);
+      minRooms = metrics.getMinRooms();
+      console.log("Min Rooms: " + minRooms);
       
       aud.generatePattern(metrics.getAudStress(), metrics.getAudEnergy(), 4, 4, Math.floor(Math.random() * 10000));
       aud.setVolume(0.5);

@@ -5,8 +5,9 @@
  */
 var metrics = new function() {
    this.gameInit = function() {
-      this.numLevel = 0;
-      this.timeWithOrb = 0;
+      this.numLevel = 1;
+      this.prevOrbTimeRatio = 0;
+      this.prevFastKilledRatio = 1;
    }
 
    /*
@@ -25,13 +26,15 @@ var metrics = new function() {
       this.defAtStart = playerDef;     // NEEDED?
       this.dmgDealt = 0;
       this.dmgTaken = 0;
-      this.enemiesKilled = 0;
+//       this.enemiesKilled = 0;
       this.enemyHits = 0;
       this.enemyMisses = 0;
-      this.fastEnemyEncounters = 0;    //NEW
-      this.strongEnemyEncounters = 0;  //NEW
-      this.totalFastEnemies = 0;       //NEW
-      this.totalStrongEnemies = 0;     //NEW
+      this.fastEnemyEncounters = 0;
+      this.fastEnemyKills = 0;         //NEW
+      this.totalFastEnemies = 0;
+      this.strongEnemyEncounters = 0;
+      this.strongEnemyKills = 0;       //NEW
+      this.totalStrongEnemies = 0;
       this.potionsHeld = numPotions;   //NEEDED?
       this.potionsUsed = 0;            //NEEDED?
       this.maxHealth = playerHealth;
@@ -66,8 +69,6 @@ var metrics = new function() {
       this.clock = setInterval(function() {
          ++metrics.time;
       }, 1000);
-      
-      this.numLevel++;
    };
    
    /* Starts to slowly increase misfortune. Call when the player picks up the orb */
@@ -153,14 +154,37 @@ var metrics = new function() {
    /* level averages                                                          */
    /* ======================================================================= */
    
-   /* Returns the minimum number of rooms for a level. Call before initializing
-      the next level */
+   /* Returns the minimum number of rooms for a level */
    this.getMinRooms = function() {
       var min = 10;
       var max = 20;
-      var maxTime = 120;   /* The time in seconds at which max will be used */
-      var time = Math.min(this.timeWithOrb, maxTime);
-      return Math.floor((max-min) * (time / maxTime) + min);
+      return Math.floor((max-min) * this.prevOrbTimeRatio + min);
+   }
+   
+   /* Returns the room width and height within the given ranges. The values are
+      retuned as an Array object with width as the first element and height as
+      the second element. */
+   this.getRoomDimensions = function(minWidth, maxWidth, minHeight, maxHeight) {
+      var dims = Array(2);
+      var width, height;
+      
+      /* Calculate the largest possible W/H difference and take a percentage of 
+         that based on previous level metrics */
+      var change = this.prevOrbTimeRatio * (1 - this.prevFastKilledRatio);
+      var diff = Math.round(change * (Math.min(maxWidth, maxHeight) - Math.max(minWidth, minHeight)));
+
+      do {
+         width = Math.floor(Math.random() * (maxWidth - minWidth + 1)) + minWidth;
+         height = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+         if (width % 2 == 0)
+            width += Math.random() < 0.5 ? 1 : -1;
+         if (height % 2 == 0)
+            height += Math.random() < 0.5 ? 1 : -1;
+      } while (Math.abs(width - height) < diff);
+      
+      dims[0] = width;
+      dims[1] = height;
+      return dims;
    }
    
    /* Returns the probability of a wall being placed on any given tile. (0-1). 
@@ -199,6 +223,7 @@ var metrics = new function() {
     */
    this.calculateAverages = function() {
       var totEncounters = this.strongEnemyEncounters + this.fastEnemyEncounters;
+      var totKills = this.strongEnemyKills + this.fastEnemyKills;
       var totEnemies = this.totalStrongEnemies + this.totalFastEnemies;
    
       this.dmgDealtPerRoom = Math.round(this.dmgDealt / this.roomsVisited * 10) / 10;
@@ -213,10 +238,10 @@ var metrics = new function() {
       else {
          this.dmgDealtPerEncounter = Math.round(this.dmgDealt / totEncounters * 10) / 10;
          this.dmgTakenPerEncounter = Math.round(this.dmgTaken / totEncounters * 10) / 10;
-         this.killedToEncounteredRatio = Math.round(this.enemiesKilled / totEncounters * 100) / 100;
+         this.killedToEncounteredRatio = Math.round(totKills / totEncounters * 100) / 100;
       }
       this.enemiesFoughtRatio = Math.round(totEncounters / totEnemies * 100)/ 100;
-      this.hitsPerKill = this.enemiesKilled == 0 ? 0 : Math.round(this.enemyHits / this.enemiesKilled * 10) / 10;
+      this.hitsPerKill = totKills == 0 ? 0 : Math.round(this.enemyHits / totKills * 10) / 10;
       this.accuracy = this.enemyHits == 0 && this.enemyMisses == 0 ? 0 : Math.round(this.enemyHits / (this.enemyHits + this.enemyMisses) * 100) / 100;
       this.timePerRoom = Math.round(this.time / this.roomsVisited * 10) / 10;
       this.stepsPerRoom = Math.round(this.stepsTaken / this.roomsVisited * 10) / 10;
@@ -228,6 +253,12 @@ var metrics = new function() {
    this.endLevel = function() {
       clearInterval(this.clock);
       clearInterval(this.clockOrb);
+      
+      var maxTime = 120;   /* The cap orb-held-time to prevent dramatic changes */
+      this.prevOrbTimeRatio = Math.min(this.timeWithOrb, maxTime) / maxTime;
+      this.prevFastKilledRatio = this.fastEnemyKills / this.totalFastEnemies;
+      
+      this.numLevel++;
    
       console.log("---LEVEL METRICS---");
 //       console.log("Strength: " + this.str);
@@ -236,36 +267,41 @@ var metrics = new function() {
 //       console.log("Defense change: " + (this.def-this.defAtStart));
 //       console.log("Damage dealt: " + this.dmgDealt);
 //       console.log("Damage taken: " + this.dmgTaken);
-      console.log("Total Strong Enemies: " + this.totalStrongEnemies);
-      console.log("Total Fast Enemies: " + this.totalFastEnemies);
-      console.log("Enemies killed: " + this.enemiesKilled + " out of " + (this.totalStrongEnemies + this.totalFastEnemies));
+      console.log("Strong Enemies:");
+      console.log("   Encounters: " + this.strongEnemyEncounters);
+      console.log("   Kills: " + this.strongEnemyKills);
+      console.log("   Total: " + this.totalStrongEnemies);
+      console.log("Fast Enemies:");
+      console.log("   Encounters: " + this.fastEnemyEncounters);
+      console.log("   Kills: " + this.fastEnemyKills);
+      console.log("   Total: " + this.totalFastEnemies);
       console.log("Enemy hits: " + this.enemyHits);
       console.log("Enemy misses: " + this.enemyMisses);
-      console.log("Strong Enemy Encounters: " + this.strongEnemyEncounters);
-      console.log("Fast Enemy Encounters: " + this.fastEnemyEncounters);
 //       console.log("Potions held: " + this.potionsHeld);
 //       console.log("Potions used: " + this.potionsUsed);
 //       console.log("Max health: " + this.maxHealth);
 //       console.log("Min health: " + this.minHealth);
 //       console.log("Avg health: " + this.avgHealth);
 //       console.log("Rooms visited: " + this.roomsVisited);
-      console.log("Steps taken: " + this.stepsTaken);
+//       console.log("Steps taken: " + this.stepsTaken);
       console.log("Total time (seconds): " + this.time);
       console.log("Time with orb (seconds): " + this.timeWithOrb);
       console.log("Misfortune: " + this.misfortune);
       console.log("---LEVEL AVERAGES---");
-      console.log("Damage dealt per Room: " + this.dmgDealtPerRoom);
-      console.log("Damage taken per Room: " + this.dmgTakenPerRoom);
-      console.log("Damage dealt per Enemy: " + this.dmgDealtPerEnemy);
-      console.log("Damage taken per Enemy: " + this.dmgTakenPerEnemy);
-      console.log("Damage dealt per Encounter: " + this.dmgDealtPerEncounter);
-      console.log("Damage taken per Encounter: " + this.dmgTakenPerEncounter);
-      console.log("Percentage of enemies fought: " + this.enemiesFoughtRatio * 100 + "%");
-      console.log("Percentage of encountered enemies killed: " + this.killedToEncounteredRatio * 100 + "%");
-      console.log("Sword hits per kill: " + this.hitsPerKill);
-      console.log("Accuracy: " + this.accuracy * 100 + "%");
-      console.log("Time per Room: " + this.timePerRoom);
+//       console.log("Damage dealt per Room: " + this.dmgDealtPerRoom);
+//       console.log("Damage taken per Room: " + this.dmgTakenPerRoom);
+//       console.log("Damage dealt per Enemy: " + this.dmgDealtPerEnemy);
+//       console.log("Damage taken per Enemy: " + this.dmgTakenPerEnemy);
+//       console.log("Damage dealt per Encounter: " + this.dmgDealtPerEncounter);
+//       console.log("Damage taken per Encounter: " + this.dmgTakenPerEncounter);
+//       console.log("Percentage of enemies fought: " + this.enemiesFoughtRatio * 100 + "%");
+//       console.log("Percentage of encountered enemies killed: " + this.killedToEncounteredRatio * 100 + "%");
+//       console.log("Sword hits per kill: " + this.hitsPerKill);
+//       console.log("Accuracy: " + this.accuracy * 100 + "%");
+//       console.log("Time per Room: " + this.timePerRoom);
 //       console.log("Steps per Room: " + this.stepsPerRoom);
+      console.log("Orb time ratio: " + this.prevOrbTimeRatio);
+      console.log("Fast enemies killed to encountered ratio: " + this.prevFastKilledRatio);
    }
 
 };
