@@ -6,6 +6,7 @@
 var metrics = new function() {
    this.gameInit = function() {
       this.numLevel = 1;
+      this.totLevels = 5;
       this.prevOrbTimeRatio = 0;
       this.prevStrongKilledRatio = 1;
       this.prevFastKilledRatio = 1;
@@ -31,10 +32,10 @@ var metrics = new function() {
       this.enemyHits = 0;
       this.enemyMisses = 0;
       this.fastEnemyEncounters = 0;
-      this.fastEnemyKills = 0;         //NEW
+      this.fastEnemyKills = 0;
       this.totalFastEnemies = 0;
       this.strongEnemyEncounters = 0;
-      this.strongEnemyKills = 0;       //NEW
+      this.strongEnemyKills = 0;
       this.totalStrongEnemies = 0;
       this.potionsHeld = numPotions;   //NEEDED?
       this.potionsUsed = 0;            //NEEDED?
@@ -220,6 +221,14 @@ var metrics = new function() {
          chance -= 0.15;
       return chance;
    }
+   
+   /* Returns true if the player got through all the levels. Call after this.endLevel */
+   this.isGameWon = function() {
+      var didWin = false;
+      if (this.numLevel > this.totLevels)
+         didWin = true;
+      return didWin;
+   }
    /* ======================================================================= */
    
    /* 
@@ -284,7 +293,11 @@ var metrics = new function() {
       this.prevFastKilledRatio = this.fastEnemyKills / this.totalFastEnemies;
       
       this.numLevel++;
-   
+      if (this.prevOrbTimeRatio > 0.75 && this.totLevels < 7)
+         this.totLevels++;
+      else if (this.prevOrbTimeRatio < 0.25 && this.totLevels > 3)
+         this.totLevels--;
+         
       console.log("---LEVEL METRICS---");
 //       console.log("Strength: " + this.str);
 //       console.log("Strength change: " + (this.str-this.strAtStart));
