@@ -1786,8 +1786,7 @@ window.onload = function() {
       if (metrics.isGameWon())
          title = createLabel("YOU'VE REACHED THE END", 60, 10, "16px sans-serif");
       else if (died)
-         title = createLabel("YOU'VE REACHED THE END", 60, 10, "16px sans-serif");
-//          title = createLabel("GAME OVER", 130, 10, "16px sans-serif");
+         title = createLabel("GAME OVER", 130, 10, "16px sans-serif");
       else
          title = createLabel("LEVEL COMPLETE", 100, 10, "16px sans-serif");
       
