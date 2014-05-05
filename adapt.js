@@ -221,6 +221,31 @@ var metrics = new function() {
       return chance * (max-min) + min;
    }
    
+   /* ======================================================================= */
+   
+   /* Returns the likelihood of a room tile having an item. It increases if the
+      player still needs to find the orb and has no keys */
+   this.getRoomItemChance = function(seenOrb, numKeys) {
+      var chance = 0.01;
+      var max = 0.02;
+      if (!seenOrb && numKeys == 0 && this.getOrbChance() >= 1)
+         chance = max;
+      return chance;
+   }
+   
+   /* Returns the likelihood of a room tile having a chest */
+   this.getRoomChestChance = function() {
+      var def = 0.013;
+      return def;
+   }
+   
+   /* Returns the chance that the orb will appear in a chest. It has the highest
+      chance after the player has gone through 25% of the level. */
+   this.getOrbChance = function() {
+      var latest = Math.ceil(this.getMinRooms()/4);
+      return Math.min(1, this.roomsVisited/latest);
+   }
+   
    /* Returns true if the player got through all the levels. Call after this.endLevel */
    this.isGameWon = function() {
       var didWin = false;
@@ -228,7 +253,7 @@ var metrics = new function() {
          didWin = true;
       return didWin;
    }
-   /* ======================================================================= */
+   
    
    /* 
     * Updates the running average health and increments the time. Must be called once

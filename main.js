@@ -492,10 +492,10 @@ Room = Class.create(Map, {
                this.collision[countRow][countCol] = 1;
             else {
                this.collision[countRow][countCol] = 0;
-               if (this.tiles[countRow][countCol] == 0 && Math.floor(Math.random() * 100) == 0) {                    //***VARY***
+               if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomItemChance(player.seenOrb, player.numKeys)) {
                   this.items.tiles[countRow][countCol] = game.getRandomItem(false);
                }
-               else if (this.tiles[countRow][countCol] == 0 && Math.floor(Math.random() * 75) == 0 &&    //***VARY***
+               else if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomChestChance() &&
                         this.tiles[countRow-1][countCol] != NORTH && this.tiles[countRow+1][countCol] != SOUTH &&
                         this.tiles[countRow][countCol-1] != WEST && this.tiles[countRow][countCol+1] != EAST &&
                         this.tiles[countRow][countCol-1] != DOWN && this.tiles[countRow][countCol+1] != UP) {   
@@ -1725,18 +1725,23 @@ window.onload = function() {
    
    /*
     * Returns the frame of a random item (change constants to vary probability)
-    * Currently, key = 40%, potion = 24%, sword = 18%, shield = 18%
+    * Currently, key = 40%, potion = 24%, sword = 18%, shield = 18%.
+    * Increase the chance of a key to 80% if the player hasn't seen the orb and
+    * doesn't have any keys.
     * Parameters:
     *    wantOrb = true if there is a possibility of returning the orb
     */
    game.getRandomItem = function(wantOrb) {                                                                       //***VARY***
       var itemFrame;
+      var orbChance = metrics.getOrbChance();
       var randomNum = Math.random();
-   
-      if (wantOrb && !player.seenOrb && Math.random() < sceneList.length/minRooms) {
+      
+      if (wantOrb && !player.seenOrb && Math.random() < orbChance) {
          itemFrame = ORB;
          player.seenOrb = true;
       }
+      else if (!player.seenOrb && orbChance >= 1 && player.numKeys == 0 && randomNum < 0.8)
+         itemFrame = KEY;
       else if (randomNum < 0.4)
          itemFrame = KEY;
       else if (randomNum < 0.64)
