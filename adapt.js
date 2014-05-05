@@ -28,7 +28,6 @@ var metrics = new function() {
       this.defAtStart = playerDef;     // NEEDED?
       this.dmgDealt = 0;
       this.dmgTaken = 0;
-//       this.enemiesKilled = 0;
       this.enemyHits = 0;
       this.enemyMisses = 0;
       this.fastEnemyEncounters = 0;
@@ -216,10 +215,10 @@ var metrics = new function() {
       The chance is less for the first level. */
    this.getObstacleChance = function() {
       this.calculateAverages();
-      var chance = 1/this.timePerRoom + 0.15;   // Comes out to a value between 0.2 - 0.45
-      if (this.numLevel == 1)
-         chance -= 0.15;
-      return chance;
+      var min = 0.15;
+      var max = 0.45;
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio) + (1 - this.prevStrongKilledRatio)) / 3;
+      return chance * (max-min) + min;
    }
    
    /* Returns true if the player got through all the levels. Call after this.endLevel */
