@@ -280,24 +280,32 @@ Player = Class.create(Sprite, {
             map.editCollision((this.y-GRID)/GRID, this.x/GRID, 0);
             map.items.tiles[(this.y-GRID)/GRID][this.x/GRID] = game.getRandomItem(true);
             player.numKeys--;
+            metrics.totalKeys--;
+            metrics.totalChests--;
          }
          else if (player.direction == P_DOWN && map.chests.checkTile(this.x, this.y+GRID) == CHEST_CLOSED) {
             map.chests.tiles[(this.y+GRID)/GRID][this.x/GRID] = CHEST_OPEN;
             map.editCollision((this.y+GRID)/GRID, this.x/GRID, 0);
             map.items.tiles[(this.y+GRID)/GRID][this.x/GRID] = game.getRandomItem(true);
             player.numKeys--;
+            metrics.totalKeys--;
+            metrics.totalChests--;
          }
          else if (player.direction == P_LEFT && map.chests.checkTile(this.x-GRID, this.y) == CHEST_CLOSED) {
             map.chests.tiles[this.y/GRID][(this.x-GRID)/GRID] = CHEST_OPEN;
             map.editCollision(this.y/GRID, (this.x-GRID)/GRID, 0);
             map.items.tiles[this.y/GRID][(this.x-GRID)/GRID] = game.getRandomItem(true);
             player.numKeys--;
+            metrics.totalKeys--;
+            metrics.totalChests--;
          }
          else if (player.direction == P_RIGHT && map.chests.checkTile(this.x+GRID, this.y) == CHEST_CLOSED) {
             map.chests.tiles[this.y/GRID][(this.x+GRID)/GRID] = CHEST_OPEN;
             map.editCollision(this.y/GRID, (this.x+GRID)/GRID, 0);
             map.items.tiles[this.y/GRID][(this.x+GRID)/GRID] = game.getRandomItem(true);
             player.numKeys--;
+            metrics.totalKeys--;
+            metrics.totalChests--;
          }
          
          map.chests.loadData(map.chests.tiles);
@@ -493,7 +501,10 @@ Room = Class.create(Map, {
             else {
                this.collision[countRow][countCol] = 0;
                if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomItemChance(player.seenOrb, player.numKeys)) {
-                  this.items.tiles[countRow][countCol] = game.getRandomItem(false);
+                  if (exitPlaced && !player.seenOrb && metrics.needEmergencyOrb())
+                     this.items.tiles[countRow][countCol] = game.getRandomItem(true);
+                  else
+                     this.items.tiles[countRow][countCol] = game.getRandomItem(false);
                }
                else if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomChestChance() &&
                         this.tiles[countRow-1][countCol] != NORTH && this.tiles[countRow+1][countCol] != SOUTH &&
@@ -501,6 +512,7 @@ Room = Class.create(Map, {
                         this.tiles[countRow][countCol-1] != DOWN && this.tiles[countRow][countCol+1] != UP) {   
                   this.chests.tiles[countRow][countCol] = CHEST_CLOSED;
                   this.collision[countRow][countCol] = 1;
+                  metrics.totalChests++;
                }
             }
          }
@@ -1272,7 +1284,7 @@ window.onload = function() {
       else
          map = new Room(0, null, 0, 0, 0);
          
-      metrics.levelInit(player.strength, player.defense, player.health, player.numPotions);
+      metrics.levelInit(player.strength, player.defense, player.health, player.numPotions, player.numKeys);
       minRooms = metrics.getMinRooms();
       console.log("Min Rooms: " + minRooms);
       
@@ -1570,7 +1582,7 @@ window.onload = function() {
       curScene = nextScene;
       map = nextRoom;
       
-      metrics.doorsEntered++;
+      metrics.doorsEntered++;      
    }, 
    
    /* 
@@ -1740,10 +1752,14 @@ window.onload = function() {
          itemFrame = ORB;
          player.seenOrb = true;
       }
-      else if (!player.seenOrb && orbChance >= 1 && player.numKeys == 0 && randomNum < 0.8)
+      else if (!player.seenOrb && orbChance >= 1 && player.numKeys == 0 && randomNum < 0.8) {
          itemFrame = KEY;
-      else if (randomNum < 0.4)
+         metrics.totalKeys++;
+      }
+      else if (randomNum < 0.4) {
          itemFrame = KEY;
+         metrics.totalKeys++;
+      }
       else if (randomNum < 0.64)
          itemFrame = POTION;
       else

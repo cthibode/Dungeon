@@ -20,34 +20,36 @@ var metrics = new function() {
     *    playerHealth = initial health of the player
     *    numPotions = initial number of health potions held by the player
     */
-   this.levelInit = function(playerStr, playerDef, playerHealth, numPotions) {
+   this.levelInit = function(playerStr, playerDef, playerHealth, numPotions, numKeys) {
       /* Raw data metrics that should be collected during gameplay */
-      this.str = playerStr;            // NEEDED?
-      this.strAtStart = playerStr;     // NEEDED?
-      this.def = playerDef;            // NEEDED?
-      this.defAtStart = playerDef;     // NEEDED?
+      this.str = playerStr;
+      this.strAtStart = playerStr;
+      this.def = playerDef;
+      this.defAtStart = playerDef;
       this.dmgDealt = 0;
       this.dmgTaken = 0;
       this.enemyHits = 0;
       this.enemyMisses = 0;
-      this.fastEnemyEncounters = 0;
-      this.fastEnemyKills = 0;
-      this.totalFastEnemies = 0;
-      this.strongEnemyEncounters = 0;
-      this.strongEnemyKills = 0;
-      this.totalStrongEnemies = 0;
-      this.potionsHeld = numPotions;   //NEEDED?
-      this.potionsUsed = 0;            //NEEDED?
+      this.fastEnemyEncounters = 0;    // NEEDED?
+      this.fastEnemyKills = 0;         // NEEDED
+      this.totalFastEnemies = 0;       // NEEDED
+      this.strongEnemyEncounters = 0;  // NEEDED?
+      this.strongEnemyKills = 0;       // NEEDED
+      this.totalStrongEnemies = 0;     // NEEDED
+      this.totalKeys = numKeys;        // NEEDED
+      this.totalChests = 0;            // NEEDED
+      this.potionsHeld = numPotions;
+      this.potionsUsed = 0;
       this.maxHealth = playerHealth;
       this.minHealth = playerHealth;
-      this.avgHealth = playerHealth;   // NOT USED CURRENTLY
-      this.roomsVisited = 1;
+      this.avgHealth = playerHealth;   
+      this.roomsVisited = 1;           // NEEDED
       this.doorsEntered = 0;  
-      this.stepsTaken = 0;
+      this.stepsTaken = 0;  
       
       /* Average/other metrics that should not be altered manually */
-      this.time = 0;
-      this.timeWithOrb = 0;
+      this.time = 0;                      // NEEDED?
+      this.timeWithOrb = 0;               // NEEDED
       this.timePerRoom = 0;
       this.dmgDealtPerRoom = 0;
       this.dmgTakenPerRoom = 0;
@@ -227,7 +229,7 @@ var metrics = new function() {
       player still needs to find the orb and has no keys */
    this.getRoomItemChance = function(seenOrb, numKeys) {
       var chance = 0.01;
-      var max = 0.02;
+      var max = 0.025;
       if (!seenOrb && numKeys == 0 && this.getOrbChance() >= 1)
          chance = max;
       return chance;
@@ -235,15 +237,24 @@ var metrics = new function() {
    
    /* Returns the likelihood of a room tile having a chest */
    this.getRoomChestChance = function() {
-      var def = 0.013;
-      return def;
+      var chance = 0.013;
+      return chance;
    }
    
    /* Returns the chance that the orb will appear in a chest. It has the highest
-      chance after the player has gone through 25% of the level. */
+      chance after the player has gone through 1/3 of the level. */
    this.getOrbChance = function() {
-      var latest = Math.ceil(this.getMinRooms()/4);
+      var latest = Math.ceil(this.getMinRooms() / 3);
       return Math.min(1, this.roomsVisited/latest);
+   }
+   
+   /* Returns a boolean indicating if the player has no means of getting the orb
+      by the end of the level. If true, must make orb available without a key or chest */
+   this.needEmergencyOrb = function() {
+      var needed = false;
+      if (this.totalKeys == 0 || this.totalChests == 0)
+         needed = true;
+      return needed;
    }
    
    /* Returns true if the player got through all the levels. Call after this.endLevel */
