@@ -227,11 +227,8 @@ Player = Class.create(Sprite, {
       }
          
       /* Update music based on misfortune */
-      if (this.age % (game.fps*3) == 0) {
+      if (this.age % (game.fps*3) == 0)
          aud.adaptPattern(metrics.getAudStress(), metrics.getAudEnergy());
-//          metrics.updateAvgHealthPerSec(this.health);
-      }
-
    },
    
    /* Add a text box if the player is standing on an item */
@@ -854,19 +851,19 @@ Enemy = Class.create(Group, {
       room.editCollision(this.sprite.y/GRID, this.sprite.x/GRID, 2);
       
       /* Enemy stats (speed must evenly divide the grid length) */
-      if (type == "monster1.gif") {                                                                                        //***VARY***
-         this.health = this.maxHealth = 20;
-         this.strength = 5;
-         this.defense = 1;  
+      if (type == "monster1.gif") {
+         this.health = this.maxHealth = metrics.getStrongEnemyHealth();
+         this.strength = metrics.getStrongEnemyAttack();
+         this.defense = metrics.getStrongEnemyDefense();  
          this.turnTimeMax = 32;
          this.speed = 4;
          this.hpDisplay = createLabel(this.health + "/" + this.maxHealth, this.sprite.x, 
                                    this.sprite.y, "10px sans-serif", "rgb(200,200,200)");
       }
       else if (type == "monster2.gif") {                                                                                   //***VARY***
-         this.health = this.maxHealth = 15;                                                                                
-         this.strength = 3;
-         this.defense = 0;   
+         this.health = this.maxHealth = metrics.getFastEnemyHealth();                                                                                
+         this.strength = metrics.getFastEnemyAttack();
+         this.defense = metrics.getFastEnemyDefense();   
          this.turnTimeMax = 15;
          this.speed = 8;
          this.hpDisplay = createLabel(this.health + "/" + this.maxHealth, this.sprite.x, 
@@ -1738,7 +1735,7 @@ window.onload = function() {
    /*
     * Returns the frame of a random item (change constants to vary probability)
     * Currently, key = 40%, potion = 24%, sword = 18%, shield = 18%.
-    * Increase the chance of a key to 80% if the player hasn't seen the orb and
+    * Increase the chance of a key to 70% if the player hasn't seen the orb and
     * doesn't have any keys.
     * Parameters:
     *    wantOrb = true if there is a possibility of returning the orb
@@ -1752,7 +1749,7 @@ window.onload = function() {
          itemFrame = ORB;
          player.seenOrb = true;
       }
-      else if (!player.seenOrb && orbChance >= 1 && player.numKeys == 0 && randomNum < 0.8) {
+      else if (!player.seenOrb && orbChance >= 1 && player.numKeys == 0 && randomNum < 0.7) {
          itemFrame = KEY;
          metrics.totalKeys++;
       }

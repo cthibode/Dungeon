@@ -62,8 +62,6 @@ var metrics = new function() {
       this.hitsPerKill = 0;
       this.accuracy = 0;
       this.stepsPerRoom = 0;
-      // Add more metrics about number of rooms visited in relation to the minimum number of rooms
-      // Add metrics relating to number of keys held, total chests, chests opened
       
       /* The misfortune variable determines how well things go for the player. It increases as the
          player holds the orb and decreases as the player is not holding the orb (0-1) */
@@ -213,6 +211,50 @@ var metrics = new function() {
       return chance * (max-min) + min;
    }
    
+   /* These functions return the strong enemy stats */
+   this.getStrongEnemyHealth = function() {
+      var min = 20;
+      var max = 25;
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevStrongKilledRatio)) / 2;
+      return Math.round(chance * (max-min) + min);
+   }
+   
+   this.getStrongEnemyAttack = function() {
+      var min = 5;
+      var max = 6;
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevStrongKilledRatio)) / 2;
+      return Math.round(chance * (max-min) + min);
+   }
+   
+   this.getStrongEnemyDefense = function() {
+      var min = 1;
+      var max = 3;
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevStrongKilledRatio)) / 2;
+      return Math.round(chance * (max-min) + min);
+   }
+   
+   /* These functions return the fast enemy stats (they don't really do much now) */
+   this.getFastEnemyHealth = function() {
+      var min = 15;
+      var max = 15;
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevStrongKilledRatio)) / 2;
+      return Math.round(chance * (max-min) + min);
+   }
+   
+   this.getFastEnemyAttack = function() {
+      var min = 3;
+      var max = 3;
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevStrongKilledRatio)) / 2;
+      return Math.round(chance * (max-min) + min);
+   }
+   
+   this.getFastEnemyDefense = function() {
+      var min = 0;
+      var max = 0;
+      var chance = (this.prevOrbTimeRatio + (1 - this.prevStrongKilledRatio)) / 2;
+      return Math.round(chance * (max-min) + min);
+   }
+   
    /* Returns the probability of a wall being placed on any given tile. (0-1). 
       The chance is less for the first level. */
    this.getObstacleChance = function() {
@@ -263,27 +305,6 @@ var metrics = new function() {
       if (this.numLevel > this.totLevels)
          didWin = true;
       return didWin;
-   }
-   
-   
-   /* 
-    * Updates the running average health and increments the time. Must be called once
-    * per second to get a correct value for average health and time.
-    * Parameters:
-    *    curHealth = the health value to add to the average
-    */
-//    this.updateAvgHealthPerSec = function() {
-//       var curHealth = 100;
-//       this.avgHealth += (curHealth - this.avgHealth) / ++this.time;
-//       this.avgHealth = Math.round(this.avgHealth * 10) / 10;
-//    };
-   
-   /* 
-    * Calculate running average values across all previous levels. Call when the 
-    * level is over to add the just completed level to the average.
-    */
-   this.calculateTotalAverages = function() {
-      this.TAdmgDealtPerRoom += (this.dmgDealtPerRoom - this.TAdmgDealtPerRoom) / this.numLevel;
    }
    
    /*
