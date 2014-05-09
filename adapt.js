@@ -262,7 +262,7 @@ var metrics = new function() {
       var min = 0.15;
       var max = 0.45;
       var chance = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio) + (1 - this.prevStrongKilledRatio)) / 3;
-      return chance * (max-min) + min;
+      return Math.min(1, chance * (max-min) + min);
    }
    
    /* ======================================================================= */

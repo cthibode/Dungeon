@@ -506,7 +506,8 @@ Room = Class.create(Map, {
                else if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomChestChance() &&
                         this.tiles[countRow-1][countCol] != NORTH && this.tiles[countRow+1][countCol] != SOUTH &&
                         this.tiles[countRow][countCol-1] != WEST && this.tiles[countRow][countCol+1] != EAST &&
-                        this.tiles[countRow][countCol-1] != DOWN && this.tiles[countRow][countCol+1] != UP) {   
+                        this.tiles[countRow][countCol-1] != DOWN && this.tiles[countRow][countCol+1] != UP &&
+                        countRow != (ROOM_HIG_MAX-1)/2 && countCol != (ROOM_WID_MAX-1)/2) {   
                   this.chests.tiles[countRow][countCol] = CHEST_CLOSED;
                   this.collision[countRow][countCol] = 1;
                   metrics.totalChests++;
@@ -575,6 +576,15 @@ Room = Class.create(Map, {
       if (!this.North && !this.South && !this.East && !this.West)
          this.North = true;
       
+      if (!this.North && this.South && !this.East && !this.West && dir == NORTH)
+         this.North = true;
+      else if (this.North && !this.South && !this.East && !this.West && dir == SOUTH)
+         this.South = true;
+      else if (!this.North && !this.South && !this.East && this.West && dir == EAST)
+         this.East = true;
+      else if (!this.North && !this.South && this.East && !this.West && dir == WEST)
+         this.West = true;
+      
       /* Get the right amount of exits */
       if (this.North && dir != SOUTH)
          exits.push(NORTH);
@@ -589,11 +599,11 @@ Room = Class.create(Map, {
          index = Math.floor(Math.random() * exits.length);
          if (exits[index] == NORTH)
             this.North = false;
-         if (exits[index] == SOUTH)
+         else if (exits[index] == SOUTH)
             this.South = false;
-         if (exits[index] == EAST)
+         else if (exits[index] == EAST)
             this.East = false;
-         if (exits[index] == WEST)
+         else if (exits[index] == WEST)
             this.West = false;
          exits.splice(index, 1);
       }
@@ -661,7 +671,7 @@ Room = Class.create(Map, {
       var isPath, startX, startY, endX, endY;
       var exitCoords = Array();
       var pathFinder = new EasyStar.js();
-      var retry = {Value: false};
+      var retry = {Value: false, Attempts: 0};
       var tempTiles = Array(ROOM_HIG_MAX);
       
       var obstacleChance = metrics.getObstacleChance();
@@ -669,16 +679,14 @@ Room = Class.create(Map, {
       pathFinder.setAcceptableTiles([0, NEXT_LEVEL, NORTH, SOUTH, EAST, WEST, UP, DOWN]);
       do {
          retry.Value = false;
-         
+
          /* Populate the map with obstacles */
          for (countRow = 0; countRow < ROOM_HIG_MAX; countRow++) {
             tempTiles[countRow] = Array(ROOM_WID_MAX);
             for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
                tempTiles[countRow][countCol] = this.tiles[countRow][countCol];
-               if (tempTiles[countRow][countCol] == 0 && Math.random() < obstacleChance) {
-//                if (tempTiles[countRow][countCol] == 0 && Math.floor(Math.random() * (10+numAttempt)) == numAttempt) {   //***VARY***
+               if (tempTiles[countRow][countCol] == 0 && Math.random() < obstacleChance)
                   tempTiles[countRow][countCol] = 2;
-               }
                if (countRow > 0 && tempTiles[countRow-1][countCol] == 2 &&
                    (tempTiles[countRow][countCol] == 1 || tempTiles[countRow][countCol] == 2))
                   tempTiles[countRow-1][countCol] = 1;
@@ -726,10 +734,12 @@ Room = Class.create(Map, {
          }
          exitCoords.length = 0;
          
+         retry.Attempts++;
          obstacleChance *= 0.8;
-      } while (retry.Value);
-
-      this.tiles = tempTiles;
+      } while (retry.Value && retry.Attempts < 50);
+      
+      if (retry.Attempts < 50)
+         this.tiles = tempTiles;
    },
    
    createFirstRoom: function() {
@@ -769,6 +779,7 @@ Room = Class.create(Map, {
  * Parameters:
  *    maxEnemies = The maximum amount of enemies to be in the room
  *    room = A Room object to check for collisions
+ *    dir = The direction the player had to go to get to this room
  */
 EnemyGroup = Class.create(Group, {
    initialize: function(maxEnemies, room, dir) {
@@ -798,6 +809,8 @@ EnemyGroup = Class.create(Group, {
                else if (dir == UP && room.checkTile(x-GRID, y) == DOWN)
                   valid = false;
                else if (dir == DOWN && room.checkTile(x+GRID, y) == UP)
+                  valid = false;
+               else if (x % GRID != 0 || y % GRID != 0)
                   valid = false;
             } while (--timeout > 0 && !valid);
             
@@ -860,7 +873,7 @@ Enemy = Class.create(Group, {
          this.hpDisplay = createLabel(this.health + "/" + this.maxHealth, this.sprite.x, 
                                    this.sprite.y, "10px sans-serif", "rgb(200,200,200)");
       }
-      else if (type == "monster2.gif") {                                                                                   //***VARY***
+      else if (type == "monster2.gif") {
          this.health = this.maxHealth = metrics.getFastEnemyHealth();                                                                                
          this.strength = metrics.getFastEnemyAttack();
          this.defense = metrics.getFastEnemyDefense();   
