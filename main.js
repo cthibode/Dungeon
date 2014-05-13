@@ -17,6 +17,7 @@ var WEST = 11;
 var DOWN = 4;
 var UP = 5;
 var NEXT_LEVEL = 7;
+var GAME_EXIT = 12;
 
 var P_UP = 3;     /* Directions for the player */
 var P_DOWN = 0;
@@ -255,7 +256,7 @@ Player = Class.create(Sprite, {
          this.cooldown = 5;
       }
       else if (this.cooldown == 0 && game.input.usePotion && player.numPotions > 0 && 
-          player.health != player.maxHealth) {
+               player.health != player.maxHealth) {
          player.numPotions--;
          player.health = player.health+20 > player.maxHealth ? player.maxHealth : player.health+20;                  //***CHANGE***
          
@@ -365,8 +366,12 @@ Player = Class.create(Sprite, {
             var dir = map.checkTile(this.x, this.y);
             if (dir == NORTH || dir == SOUTH || dir == EAST || dir == WEST || dir == UP || dir == DOWN)
                game.changeRoom(dir);
-            else if (dir == NEXT_LEVEL && player.hasOrb)   /* End the level */
-               game.endLevel(false);
+            else if (dir == NEXT_LEVEL && player.hasOrb)    /* End the level */
+               game.endLevel(0);
+            else if (dir == GAME_EXIT && !player.hasOrb)    /* End the game */
+               game.endLevel(2);
+            else if (dir == GAME_EXIT && player.hasOrb)    /* Send the player back to the beginning */
+               game.endLevel(3);
          }
       } 
       else {
@@ -414,7 +419,7 @@ Player = Class.create(Sprite, {
          metrics.dmgTaken += dmg + this.health;
          metrics.minHealth = 0;
          this.health = 0;
-         game.endLevel(true);
+         game.endLevel(1);
       }
       else {
          metrics.dmgTaken += dmg;
@@ -770,6 +775,39 @@ Room = Class.create(Map, {
       this.collisionData = this.collision;
       this.items.loadData(this.items.tiles);
       this.chests.loadData(this.chests.tiles);
+      
+      metrics.totalChests = 0;
+      metrics.totalKeys = player.numKeys;
+   },
+   
+   createLastRoom: function() {
+      var countRow, countCol;
+   
+      for (countRow = this.wallN; countRow < this.wallS; countRow++) {
+         for (countCol = this.wallW; countCol <= this.wallE; countCol++) {
+            if (countRow == this.wallN) {
+               this.tiles[countRow][countCol] = 2;
+               this.collision[countRow][countCol] = 1;
+            }
+            if (countCol == this.wallW || countCol == this.wallE) {
+               this.tiles[countRow][countCol] = 1;
+               this.collision[countRow][countCol] = 1;
+            }
+            if (countRow != this.wallN && countCol != this.wallW && countCol != this.wallE) {
+               this.tiles[countRow][countCol] = 0;
+               this.items.tiles[countRow][countCol] = -1;
+               this.chests.tiles[countRow][countCol] = -1;
+               this.collision[countRow][countCol] = 0;
+            }
+         }
+      }
+      
+      this.tiles[this.wallS][(ROOM_WID_MAX-1)/2] = GAME_EXIT;
+      
+      this.loadData(this.tiles);
+      this.collisionData = this.collision;
+      this.items.loadData(this.items.tiles);
+      this.chests.loadData(this.chests.tiles);
    }
    
 });
@@ -835,7 +873,7 @@ EnemyGroup = Class.create(Group, {
    removeEnemy: function(toRemove) {
       this.removeChild(toRemove);
       this.numAlive--;
-   }, 
+   }
 
 });
 
@@ -1236,7 +1274,7 @@ window.onload = function() {
             newSound = game.assets['assets/sounds/select2.wav'].clone();
             newSound.play();
             if (newGame.color == "red")
-               game.initLevel(true);
+               game.initLevel(0);
             else if (controls.color == "red")
                game.pushScene(controlsScene);
             else if (credits.color == "red") 
@@ -1280,25 +1318,36 @@ window.onload = function() {
    /*
     * Initializes a new level and creates the first room 
     * Parameters:
-    *    fromMenu = True if coming from the main menu, False if coming from another level.
+    *    levelType = Specifies the type of level to create:
+    *                0 -> first level
+    *                1 -> normal level
+    *                2 -> conclusion room
     */
-   game.initLevel = function(fromMenu) {
+   game.initLevel = function(levelType) {   
+      var audStress, audEnergy;
+      
       curScene = new Scene();
       curScene.backgroundColor = "black";
       
-      if (fromMenu) {
+      if (levelType == 0) {
          metrics.gameInit();
          player = new Player(GRID*(ROOM_WID_MAX-1)/2, GRID*(ROOM_HIG_MAX-1)/2);
          map = new Room(null, null, 0, 0, 0);
       }
-      else
+      else if (levelType == 1)
          map = new Room(0, null, 0, 0, 0);
+      else
+         map = new Room(null, null, 0, 0, 0);
          
       metrics.levelInit(player.strength, player.defense, player.health, player.numPotions, player.numKeys);
       minRooms = metrics.getMinRooms();
       console.log("Min Rooms: " + minRooms);
       
-      aud.generatePattern(metrics.getAudStress(), metrics.getAudEnergy(), 4, 4, Math.floor(Math.random() * 10000));
+      audStress = metrics.getAudStress();
+      audEnergy = metrics.getAudEnergy();
+      if (levelType == 2)
+         audStress = audEnergy = 0.1
+      aud.generatePattern(audStress, audEnergy, 4, 4, Math.floor(Math.random() * 10000));
       aud.setVolume(0.5);
       aud.togglePlay();
          
@@ -1312,14 +1361,21 @@ window.onload = function() {
       player.age = 0;
       exitPlaced = false;
       
-      if (fromMenu) {
+      if (levelType == 0) {
          game.pushScene(curScene);
          map.createFirstRoom();
       }
       else {
          game.replaceScene(curScene);
+         player.x = GRID*(ROOM_WID_MAX-1)/2;
+         player.y = GRID*(ROOM_HIG_MAX-1)/2;
          player.direction = P_DOWN;
-         player.hasOrb = player.seenOrb = false;
+         if (levelType == 1)
+            player.hasOrb = player.seenOrb = false;
+         else if (levelType == 2) {
+            map.createLastRoom();
+            player.hasOrb = player.seenOrb = true;
+         }
       }
    }
    
@@ -1801,9 +1857,13 @@ window.onload = function() {
    /* 
     * End the current level and display the metrics.
     * Parameters:
-    *    died = True if the level was ended by the player dying.
+    *    endType = An int specifying how the level was ended:
+    *              0 -> The player reached the end of a normal level
+    *              1 -> The player died
+    *              2 -> The player completed the game successfully
+    *              3 -> The player completed the game unsuccessfully and must restart the dungeon
     */
-   game.endLevel = function(died) {
+   game.endLevel = function(endType) {
       if (aud.isPlaying()) 
          aud.togglePause();
    
@@ -1814,10 +1874,10 @@ window.onload = function() {
       results.backgroundColor = "black"
       
       var title;
-      if (metrics.isGameWon())
-         title = createLabel("YOU'VE REACHED THE END", 60, 10, "16px sans-serif");
-      else if (died)
+      if (endType == 1)
          title = createLabel("GAME OVER", 130, 10, "16px sans-serif");
+      else if (endType == 2)
+         title = createLabel("YOU'VE ESCAPED THE DUNGEON", 60, 10, "16px sans-serif");
       else
          title = createLabel("LEVEL COMPLETE", 100, 10, "16px sans-serif");
       
@@ -1850,10 +1910,16 @@ window.onload = function() {
             map = null;
             sceneList.splice(0, sceneList.length);
             
-            if (died || metrics.isGameWon())
+            if (endType == 1 || endType == 2)   /* Go back to the main menu */
                game.popScene();
-            else
-               game.initLevel(false);
+            else if (endType == 3) {            /* Start the dungeon over */
+               metrics.gameInit();
+               game.initLevel(1);
+            }
+            else if (metrics.isGameWon())       /* Create the concluding room */
+               game.initLevel(2);
+            else                                /* Create a normal level */
+               game.initLevel(1);
          }
       });
       
