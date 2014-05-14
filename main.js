@@ -46,6 +46,8 @@ var sceneList = Array();
 var minRooms;
 var exitPlaced = false; // Keeps track if the exit portal has been placed in the level
 
+var speech; // Keeps track of the game's state for dialogue
+
 /* Generic function that creates a label */
 var createLabel = function(text, x, y, font, color) {
    var newLabel = new Label(text);
@@ -55,6 +57,31 @@ var createLabel = function(text, x, y, font, color) {
    newLabel.color = typeof(color) !== "undefined" ? color : "white";
    return newLabel;
 };
+
+/*
+ * The SpeechAct class keeps track of the game's current state for dialogue. Speech
+ * acts are sent on the transition between states:
+ *    0 = Game start
+ *    1 = Picked up orb
+ *    2 = Held onto orb for half the max time (half misfortune)
+ *    3 = Held onto orb for max time (max misfortune)
+ *    4 = Recover from misfortune halfway
+ *    5 = Fully recover from misfortune
+ *    6 = Reach portal room without the orb
+ *    7 = End of level / beginning of next level
+ *    8 = First changed room of new level
+ *    9 = At ending room
+ *    10 = Back to the start after the ending room
+ */
+SpeechAct = Class.create({
+   initialize: function() {
+      this.state = 0;
+   },
+   
+   changeState: function(newState) {
+      this.state = newState;
+   }
+});
 
 /* 
  * The Hud class displays the player's stats (health, # of potions) 
@@ -177,6 +204,10 @@ TextBox = Class.create(Group, {
          this.desc.text = "Splendid Screen<br> <br>Defense +6";
       else if (itemNum == 20)
          this.desc.text = "Divine Defender<br> <br>Defense +7";
+   },
+   
+   customText: function(str) {
+      this.desc.text = str;
    }
 });
 
@@ -376,7 +407,7 @@ Player = Class.create(Sprite, {
                game.endLevel(0);
             else if (dir == GAME_EXIT && !player.hasOrb)    /* End the game */
                game.endLevel(2);
-            else if (dir == GAME_EXIT && player.hasOrb)    /* Send the player back to the beginning */
+            else if (dir == GAME_EXIT && player.hasOrb)     /* Send the player back to the beginning */
                game.endLevel(3);
          }
       } 
@@ -1381,6 +1412,7 @@ window.onload = function() {
          metrics.gameInit();
          player = new Player(GRID*(ROOM_WID_MAX-1)/2, GRID*(ROOM_HIG_MAX-1)/2);
          map = new Room(null, null, 0, 0, 0);
+         speech = new SpeechAct();
       }
       else if (levelType == 1)
          map = new Room(0, null, 0, 0, 0);
