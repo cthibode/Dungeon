@@ -132,45 +132,51 @@ TextBox = Class.create(Group, {
       
       this.sprite = new Sprite(GRID * ROOM_WID_INIT, 50);
       this.sprite.image = game.assets["assets/images/dialogue.png"];
-      this.sprite.x = WINDOW/2 - this.sprite.width/2;
-      this.sprite.y = playerY < ROOM_HIG_MAX/4 ? game.height - GRID*2 - 50 : 0;
+      this.sprite.originX = this.sprite.originY = 0;
+      this.sprite.scaleX = this.sprite.scaleY = 1.5;
+      this.sprite.x = WINDOW/2 - this.sprite.width * this.sprite.scaleX / 2;
+      this.sprite.y = playerY < ROOM_HIG_MAX/4 ? game.height - GRID*2 - 50 * this.sprite.scaleY : 0;
+      
       this.addChild(this.sprite);
       
-      this.desc = createLabel("", this.sprite.x + 20, this.sprite.y + 10, "13px sans-serif");
+      this.desc = createLabel("", this.sprite.x + 17, this.sprite.y + 15, "14px sans-serif");
       this.desc.textAlign = "center";
+      this.desc.width = WINDOW - 55;
       this.changeText(itemNum);
       this.addChild(this.desc);
    },
    
    changeText: function(itemNum) {
-      if (itemNum == 7)
-         this.desc.text = "Steel sword: Attack +4";
+      if (itemNum == ORB)
+         this.desc.text = "Pearl of the World<br> <br>It seems to possess some sort of mystical power..."
+      else if (itemNum == 7)
+         this.desc.text = "Steel sword<br> <br>Attack +4";
       else if (itemNum == 8)
-         this.desc.text = "Sword of Ice: Attack +4, Health -25,<br>Slows enemies on hit";
+         this.desc.text = "Sword of Ice<br> <br>Attack +4, Health -25, Slows enemies on hit";
       else if (itemNum == 9)
-         this.desc.text = "Sword of Earth: Attack +4, Defense +3, <br>Attack Speed x0.67";
+         this.desc.text = "Sword of Earth<br> <br>Attack +4, Defense +3, Attack Speed x0.67";
       else if (itemNum == 10)
-         this.desc.text = "Sword of Light: Attack +0, Walking Speed x2";
+         this.desc.text = "Sword of Light<br> <br>Attack +0, Walking Speed x2";
       else if (itemNum == 11)
-         this.desc.text = "Sword of Fire: Attack +7, Defense -2,<br>Health -10";
+         this.desc.text = "Sword of Fire<br> <br>Attack +7, Defense -2, Health -10";
       else if (itemNum == 12)
-         this.desc.text = "Sword of Poison: Attack -1, Poisons enemies on hit";
+         this.desc.text = "Sword of Poison<br> <br>Attack -1, Poisons enemies on hit";
       else if (itemNum == 13)
-         this.desc.text = "Sword of Water: Attack +0, Attack Speed x1.25, <br>Health +10";
+         this.desc.text = "Sword of Water<br> <br>Attack +0, Attack Speed x1.25, Health +10";
       else if (itemNum == 14)
-         this.desc.text = "Toy Shield: Defense +1";
+         this.desc.text = "Toy Shield<br> <br>Defense +1";
       else if (itemNum == 15)
-         this.desc.text = "Wooden Shield: Defense +2";
+         this.desc.text = "Wooden Shield<br> <br>Defense +2";
       else if (itemNum == 16)
-         this.desc.text = "Battle Paddle: Defense +3";
+         this.desc.text = "Battle Paddle<br> <br>Defense +3";
       else if (itemNum == 17)
-         this.desc.text = "The Protector: Defense +4";
+         this.desc.text = "The Protector<br> <br>Defense +4";
       else if (itemNum == 18)
-         this.desc.text = "War Door: Defense +5";
+         this.desc.text = "War Door<br> <br>Defense +5";
       else if (itemNum == 19)
-         this.desc.text = "Splendid Screen: Defense +6";
+         this.desc.text = "Splendid Screen<br> <br>Defense +6";
       else if (itemNum == 20)
-         this.desc.text = "Divine Defender: Defense +7";
+         this.desc.text = "Divine Defender<br> <br>Defense +7";
    }
 });
 
@@ -236,11 +242,11 @@ Player = Class.create(Sprite, {
    checkTextBox: function() {
       var tileContents = map.items.checkTile(this.x, this.y);
       
-      if (curScene.lastChild == player && (tileContents >= 7 && tileContents < 21))
+      if (curScene.lastChild == player && (tileContents >= 7 && tileContents < 21 || tileContents == ORB))
          curScene.addChild(new TextBox(this.y/GRID, tileContents));
       else if (curScene.lastChild != player && tileContents < 0)
          curScene.removeChild(curScene.lastChild);
-      else if (curScene.lastChild != player && (tileContents >= 7 && tileContents < 21))
+      else if (curScene.lastChild != player && (tileContents >= 7 && tileContents < 21 || tileContents == ORB))
          curScene.lastChild.changeText(tileContents);
    },
    
