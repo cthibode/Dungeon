@@ -494,38 +494,8 @@ Room = Class.create(Map, {
       /* Add exits and obstacles to the room */
       this.findExits(dir, scene);
       this.makeObstacles();
-      
-      /* Set collision data */
-      for (countRow = 0; countRow < ROOM_HIG_MAX; countRow++) {
-         for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
-            if (this.tiles[countRow][countCol] == 1 || this.tiles[countRow][countCol] == 2)
-               this.collision[countRow][countCol] = 1;
-            else {
-               this.collision[countRow][countCol] = 0;
-               if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomItemChance(player.seenOrb, player.numKeys)) {
-                  if (exitPlaced && !player.seenOrb && metrics.needEmergencyOrb())
-                     this.items.tiles[countRow][countCol] = game.getRandomItem(true);
-                  else
-                     this.items.tiles[countRow][countCol] = game.getRandomItem(false);
-               }
-               else if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomChestChance() &&
-                        this.tiles[countRow-1][countCol] != NORTH && this.tiles[countRow+1][countCol] != SOUTH &&
-                        this.tiles[countRow][countCol-1] != WEST && this.tiles[countRow][countCol+1] != EAST &&
-                        this.tiles[countRow][countCol-1] != DOWN && this.tiles[countRow][countCol+1] != UP &&
-                        countRow != (ROOM_HIG_MAX-1)/2 && countCol != (ROOM_WID_MAX-1)/2) {   
-                  this.chests.tiles[countRow][countCol] = CHEST_CLOSED;
-                  this.collision[countRow][countCol] = 1;
-                  metrics.totalChests++;
-               }
-            }
-         }
-      }
+      this.setCollisionAndItems();      
 
-      this.loadData(this.tiles);
-      this.collisionData = this.collision;
-      this.items.loadData(this.items.tiles);
-      this.chests.loadData(this.chests.tiles);
-      
       /* These three fields keep track of the map topology */
       this.xRoom = x;
       this.yRoom = y;
@@ -548,6 +518,29 @@ Room = Class.create(Map, {
       }
    },
    
+   /* Removes all walls and items in a room */
+   resetRoom: function() {
+      var countRow, countCol;
+      for (countRow = this.wallN; countRow < this.wallS; countRow++) {
+         for (countCol = this.wallW+1; countCol < this.wallE; countCol++) {
+            if (countRow == this.wallN && this.tiles[countRow][countCol] == 1)
+               this.tiles[countRow][countCol] = 2;
+            else if (countRow != this.wallN) {
+               this.tiles[countRow][countCol] = 0;
+               this.items.tiles[countRow][countCol] = -1;
+               this.chests.tiles[countRow][countCol] = -1;
+               this.collision[countRow][countCol] = 0;
+            }
+         }
+      }
+      
+      this.loadData(this.tiles);
+      this.collisionData = this.collision;
+      this.items.loadData(this.items.tiles);
+      this.chests.loadData(this.chests.tiles);
+   },
+   
+   /* Fixes the wall sprites to maintain a consistent look */
    fixObstacleBlocks: function() {
       var countRow, countCol;
       for (countRow = this.wallN+1; countRow <= this.wallS; countRow++) {
@@ -669,6 +662,8 @@ Room = Class.create(Map, {
             this.Up = false;
          }
       }
+      
+      this.loadData(this.tiles);
    }, 
    
    makeObstacles: function() {
@@ -699,7 +694,7 @@ Room = Class.create(Map, {
          }
          
          pathFinder.setGrid(tempTiles);
-         
+
          /* Establishing the tiles that can't be blocked */
          if (this.North != false) {
             exitCoords.push((ROOM_WID_MAX-1)/2);
@@ -709,16 +704,27 @@ Room = Class.create(Map, {
             exitCoords.push((ROOM_WID_MAX-1)/2);
             exitCoords.push(this.wallS);
          }
-         if (this.East != false || (this.Down != false && exitPlaced)) {
+         if (this.East != false) {
             exitCoords.push(this.wallE);
             exitCoords.push((ROOM_HIG_MAX-1)/2);
          }
-         if (this.West != false || (this.Up != false && exitPlaced)) {
+         if (this.West != false) {
             exitCoords.push(this.wallW);
             exitCoords.push((ROOM_HIG_MAX-1)/2);
          }
-         if (exitCoords.length <= 2 || sceneList.length == minRooms || sceneList.length == 0 ||
-             this.Up != false || this.Down != false) {
+         if (this.Up != false) {
+            exitCoords.push((ROOM_WID_MAX-1)/2);
+            exitCoords.push((ROOM_HIG_MAX-1)/2);
+            exitCoords.push(this.wallE - 1);
+            exitCoords.push((ROOM_HIG_MAX-1)/2);
+         }
+         if (this.Down != false) {
+            exitCoords.push((ROOM_WID_MAX-1)/2);
+            exitCoords.push((ROOM_HIG_MAX-1)/2);
+            exitCoords.push(this.wallW + 1);
+            exitCoords.push((ROOM_HIG_MAX-1)/2);
+         }
+         if (exitCoords.length <= 2 || sceneList.length == minRooms || sceneList.length == 0) {
             exitCoords.push((ROOM_WID_MAX-1)/2);
             exitCoords.push((ROOM_HIG_MAX-1)/2);
          }
@@ -745,6 +751,42 @@ Room = Class.create(Map, {
       
       if (retry.Attempts < 50)
          this.tiles = tempTiles;
+         
+      this.loadData(this.tiles);
+   },
+   
+   /* Creates walls and places items in the room */
+   setCollisionAndItems: function() {
+      var countRow, countCol;
+      
+      for (countRow = 0; countRow < ROOM_HIG_MAX; countRow++) {
+         for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
+            if (this.tiles[countRow][countCol] == 1 || this.tiles[countRow][countCol] == 2)
+               this.collision[countRow][countCol] = 1;
+            else {
+               this.collision[countRow][countCol] = 0;
+               if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomItemChance(player.seenOrb, player.numKeys)) {
+                  if (exitPlaced && !player.seenOrb && metrics.needEmergencyOrb())
+                     this.items.tiles[countRow][countCol] = game.getRandomItem(true);
+                  else
+                     this.items.tiles[countRow][countCol] = game.getRandomItem(false);
+               }
+               else if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomChestChance() &&
+                        this.tiles[countRow-1][countCol] != NORTH && this.tiles[countRow+1][countCol] != SOUTH &&
+                        this.tiles[countRow][countCol-1] != WEST && this.tiles[countRow][countCol+1] != EAST &&
+                        this.tiles[countRow][countCol-1] != DOWN && this.tiles[countRow][countCol+1] != UP &&
+                        countRow != (ROOM_HIG_MAX-1)/2 && countCol != (ROOM_WID_MAX-1)/2) {   
+                  this.chests.tiles[countRow][countCol] = CHEST_CLOSED;
+                  this.collision[countRow][countCol] = 1;
+                  metrics.totalChests++;
+               }
+            }
+         }
+      }
+      
+      this.collisionData = this.collision;
+      this.items.loadData(this.items.tiles);
+      this.chests.loadData(this.chests.tiles);
    },
    
    createFirstRoom: function() {
@@ -1508,6 +1550,7 @@ window.onload = function() {
             if (toCheck.xRoom == nextRoom.xRoom && toCheck.yRoom == nextRoom.yRoom &&
                 toCheck.zRoom == nextRoom.zRoom+1) { /* Existing room above */
                if (toCheck.Down == true) {
+                  nextRoom.resetRoom();
                   nextRoom.Up = sceneList[count];
                   
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, UP);
@@ -1516,21 +1559,11 @@ window.onload = function() {
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2+1, 1);
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2+1, 2);
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 2);
-                  nextRoom.fixObstacleBlocks();
                   
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2, 1);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2+1, 1);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2+1, 1);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2+1, 1);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 1);
-
-                  if (nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2-1] == 1 || 
-                      nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2-1] == 2) {
-                     nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2-1, 0);
-                     nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2-1, 0);
-                  }
-
+                  nextScene.removeChild(nextScene.lastChild);
+                  nextRoom.makeObstacles();
+                  nextRoom.setCollisionAndItems();
+                  nextScene.addChild(new EnemyGroup(metrics.getMaxEnemies(), nextRoom, dir));
                   toCheck.Down = nextScene;
                }
                else {
@@ -1545,6 +1578,7 @@ window.onload = function() {
             if (toCheck.xRoom == nextRoom.xRoom && toCheck.yRoom == nextRoom.yRoom &&
                 toCheck.zRoom == nextRoom.zRoom-1) { /* Existing room below */
                if (toCheck.Up == true) {
+                  nextRoom.resetRoom();
                   nextRoom.Down = sceneList[count];
                      
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, DOWN);
@@ -1553,21 +1587,11 @@ window.onload = function() {
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2-1, 1);
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2-1, 2);
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 2);
-                  nextRoom.fixObstacleBlocks();
-                     
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2, 1);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2-1, 1);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2-1, 1);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2-1, 1);
-                  nextRoom.editCollision((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 1);
-
-                  if (nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2+1] == 1 || 
-                      nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2+1] == 2) {
-                     nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2+1, 0);
-                     nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2+1, 0);
-                  }
-
+                  
+                  nextScene.removeChild(nextScene.lastChild);
+                  nextRoom.makeObstacles();
+                  nextRoom.setCollisionAndItems();
+                  nextScene.addChild(new EnemyGroup(metrics.getMaxEnemies(), nextRoom, dir));
                   toCheck.Up = nextScene;
                }
                else {
@@ -1658,7 +1682,9 @@ window.onload = function() {
     */
    game.processPickup = function(item) {
       var newSound = game.assets['assets/sounds/swap.wav'].clone();
-      newSound.play();
+      
+      if (item != -1 || player.hasOrb)
+         newSound.play();
    
       if (item == POTION) {
          map.items.tiles[player.y/GRID][player.x/GRID] = -1;
