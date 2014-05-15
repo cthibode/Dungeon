@@ -407,7 +407,7 @@ Player = Class.create(Sprite, {
                game.endLevel(0);
             else if (dir == GAME_EXIT && !player.hasOrb)    /* End the game */
                game.endLevel(2);
-            else if (dir == GAME_EXIT && player.hasOrb)     /* Send the player back to the beginning */
+            else if (dir == GAME_EXIT && player.hasOrb)     /* Send the player through another level */
                game.endLevel(3);
          }
       } 
@@ -882,6 +882,7 @@ Room = Class.create(Map, {
       }
       
       this.tiles[this.wallS][(ROOM_WID_MAX-1)/2] = GAME_EXIT;
+      this.collision[this.wallS][(ROOM_WID_MAX-1)/2] = 0;
       
       this.loadData(this.tiles);
       this.collisionData = this.collision;
@@ -1419,9 +1420,11 @@ window.onload = function() {
       else
          map = new Room(null, null, 0, 0, 0);
          
-      metrics.levelInit(player.strength, player.defense, player.health, player.numPotions, player.numKeys);
-      minRooms = metrics.getMinRooms();
-      console.log("Min Rooms: " + minRooms);
+      if (levelType != 2) {
+         metrics.levelInit(player.strength, player.defense, player.health, player.numPotions, player.numKeys);
+         minRooms = metrics.getMinRooms();
+         console.log("Min Rooms: " + minRooms);
+      }
       
       audStress = metrics.getAudStress();
       audEnergy = metrics.getAudEnergy();
@@ -1925,7 +1928,7 @@ window.onload = function() {
     *              0 -> The player reached the end of a normal level
     *              1 -> The player died
     *              2 -> The player completed the game successfully
-    *              3 -> The player completed the game unsuccessfully and must restart the dungeon
+    *              3 -> The player completed the game unsuccessfully and must go through another level
     */
    game.endLevel = function(endType) {
       if (aud.isPlaying()) 
@@ -1955,7 +1958,6 @@ window.onload = function() {
                                     "Potions used: " + metrics.potionsUsed + "<br>" +
                                     "Max health: " + metrics.maxHealth + "<br>" +
                                     "Min health: " + metrics.minHealth + "<br>" +
-                                    "Avg health: " + metrics.avgHealth + "<br>" +
                                     "Rooms visited: " + metrics.roomsVisited + "<br>" +
                                     "Doors entered: " + metrics.doorsEntered + "<br>" +
                                     "Total time (seconds): " + metrics.time + "<br>"  +
@@ -1976,11 +1978,7 @@ window.onload = function() {
             
             if (endType == 1 || endType == 2)   /* Go back to the main menu */
                game.popScene();
-            else if (endType == 3) {            /* Start the dungeon over */
-               metrics.gameInit();
-               game.initLevel(1);
-            }
-            else if (metrics.isGameWon())       /* Create the concluding room */
+            else if (endType != 3 && metrics.isEndReached())    /* Create the concluding room */
                game.initLevel(2);
             else                                /* Create a normal level */
                game.initLevel(1);

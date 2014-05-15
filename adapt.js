@@ -42,7 +42,6 @@ var metrics = new function() {
       this.potionsUsed = 0;
       this.maxHealth = playerHealth;
       this.minHealth = playerHealth;
-      this.avgHealth = playerHealth;   
       this.roomsVisited = 1;           // NEEDED
       this.doorsEntered = 0;  
       this.stepsTaken = 0;  
@@ -300,11 +299,11 @@ var metrics = new function() {
    }
    
    /* Returns true if the player got through all the levels. Call after this.endLevel */
-   this.isGameWon = function() {
-      var didWin = false;
+   this.isEndReached = function() {
+      var reachedEnd = false;
       if (this.numLevel > this.totLevels)
-         didWin = true;
-      return didWin;
+         reachedEnd = true;
+      return reachedEnd;
    }
    
    /*
@@ -344,16 +343,24 @@ var metrics = new function() {
       clearInterval(this.clockOrb);
       
       var maxTime = 120;   /* The cap orb-held-time to prevent dramatic changes */
+      if (this.totalStrongEnemies == 0) {
+         this.totalStrongEnemies = 2;
+         this.strongEnemyKills = 1;
+      }
+      if (this.totalFastEnemies == 0) {
+         this.totalFastEnemies = 2;
+         this.fastEnemyKills = 1;
+      }
       this.prevOrbTimeRatio = Math.min(this.timeWithOrb, maxTime) / maxTime;
       this.prevStrongKilledRatio = this.strongEnemyKills / this.totalStrongEnemies;
       this.prevFastKilledRatio = this.fastEnemyKills / this.totalFastEnemies;
       
       this.numLevel++;
-      if (this.prevOrbTimeRatio > 0.75 && this.totLevels < 7)
+      if (this.prevOrbTimeRatio > 0.75 && this.totLevels < 7 && !this.isEndReached())
          this.totLevels++;
-      else if (this.prevOrbTimeRatio < 0.25 && this.totLevels > 3)
+      else if (this.prevOrbTimeRatio < 0.25 && this.totLevels > 3 && !this.isEndReached())
          this.totLevels--;
-         
+      
       console.log("---LEVEL METRICS---");
 //       console.log("Strength: " + this.str);
 //       console.log("Strength change: " + (this.str-this.strAtStart));
@@ -396,7 +403,7 @@ var metrics = new function() {
 //       console.log("Steps per Room: " + this.stepsPerRoom);
       console.log("Orb time ratio: " + this.prevOrbTimeRatio);
       console.log("Fast enemies killed to encountered ratio: " + this.prevFastKilledRatio);
-      console.log("Strong enemies killed to encountered ratio: " + this.prevStrongKilledRatio);
+      console.log("Strong enemies killed to encountered ratio: " + this.prevStrongKilledRatio);      
    }
 
 };
