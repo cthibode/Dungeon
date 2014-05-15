@@ -530,8 +530,7 @@ Room = Class.create(Map, {
       }
       /* Add exits and obstacles to the room */
       this.findExits(dir, scene);
-      this.makeObstacles();
-      this.setCollisionAndItems();      
+      this.populateRoom();
 
       /* These three fields keep track of the map topology */
       this.xRoom = x;
@@ -703,27 +702,32 @@ Room = Class.create(Map, {
       this.loadData(this.tiles);
    }, 
    
-   makeObstacles: function() {
+   /* Randomly fills the room with walls, chests, and items and sets collision accordingly */
+   populateRoom: function() {
       var countRow, countCol;
       var isPath, startX, startY, endX, endY;
       var exitCoords = Array();
       var pathFinder = new EasyStar.js();
       var retry = {Value: false, Attempts: 0};
       var tempTiles = Array(ROOM_HIG_MAX);
+      var placeholder = 3; // Arbitrary placeholder tile not used in rooms for chest placement
       
       var obstacleChance = metrics.getObstacleChance();
+      var chestChance = metrics.getRoomChestChance();
       
       pathFinder.setAcceptableTiles([0, NEXT_LEVEL, NORTH, SOUTH, EAST, WEST, UP, DOWN]);
       do {
          retry.Value = false;
 
-         /* Populate the map with obstacles */
+         /* Populate the map with walls and chests */
          for (countRow = 0; countRow < ROOM_HIG_MAX; countRow++) {
             tempTiles[countRow] = Array(ROOM_WID_MAX);
             for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
                tempTiles[countRow][countCol] = this.tiles[countRow][countCol];
                if (tempTiles[countRow][countCol] == 0 && Math.random() < obstacleChance)
                   tempTiles[countRow][countCol] = 2;
+               else if (tempTiles[countRow][countCol] == 0 && Math.random() < chestChance)
+                  tempTiles[countRow][countCol] = placeholder; 
                if (countRow > 0 && tempTiles[countRow-1][countCol] == 2 &&
                    (tempTiles[countRow][countCol] == 1 || tempTiles[countRow][countCol] == 2))
                   tempTiles[countRow-1][countCol] = 1;
@@ -786,46 +790,38 @@ Room = Class.create(Map, {
          obstacleChance *= 0.8;
       } while (retry.Value && retry.Attempts < 50);
       
+      /* Only set the walls and chests if it didn't time out */
       if (retry.Attempts < 50)
          this.tiles = tempTiles;
-         
-      this.loadData(this.tiles);
-   },
-   
-   /* Creates walls and places items in the room */
-   setCollisionAndItems: function() {
-      var countRow, countCol;
       
-      for (countRow = 0; countRow < ROOM_HIG_MAX; countRow++) {
-         for (countCol = 0; countCol < ROOM_WID_MAX; countCol++) {
-            if (this.tiles[countRow][countCol] == 1 || this.tiles[countRow][countCol] == 2)
-               this.collision[countRow][countCol] = 1;
-            else {
-               this.collision[countRow][countCol] = 0;
-               if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomItemChance(player.seenOrb, player.numKeys)) {
-                  if (exitPlaced && !player.seenOrb && metrics.needEmergencyOrb())
-                     this.items.tiles[countRow][countCol] = game.getRandomItem(true);
-                  else
-                     this.items.tiles[countRow][countCol] = game.getRandomItem(false);
-               }
-               else if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomChestChance() &&
-                        this.tiles[countRow-1][countCol] != NORTH && this.tiles[countRow+1][countCol] != SOUTH &&
-                        this.tiles[countRow][countCol-1] != WEST && this.tiles[countRow][countCol+1] != EAST &&
-                        this.tiles[countRow][countCol-1] != DOWN && this.tiles[countRow][countCol+1] != UP &&
-                        countRow != (ROOM_HIG_MAX-1)/2 && countCol != (ROOM_WID_MAX-1)/2) {   
-                  this.chests.tiles[countRow][countCol] = CHEST_CLOSED;
-                  this.collision[countRow][countCol] = 1;
-                  metrics.totalChests++;
-               }
+      /* Put chests, items, and collision in the room */
+      for (countRow = this.wallN; countRow <= this.wallS; countRow++) {
+         for (countCol = this.wallW; countCol <= this.wallE; countCol++) {
+            this.tiles[countRow][countCol] = tempTiles[countRow][countCol];
+            this.collision[countRow][countCol] = 0;
+            if (this.tiles[countRow][countCol] == 0 && Math.random() < metrics.getRoomItemChance(player.seenOrb, player.numKeys)) {
+               if (exitPlaced && !player.seenOrb && metrics.needEmergencyOrb())
+                  this.items.tiles[countRow][countCol] = game.getRandomItem(true);
+               else
+                  this.items.tiles[countRow][countCol] = game.getRandomItem(false);
             }
+            else if (this.tiles[countRow][countCol] == placeholder) {
+               this.tiles[countRow][countCol] = 0;
+               this.chests.tiles[countRow][countCol] = CHEST_CLOSED;
+               this.collision[countRow][countCol] = 1;
+               metrics.totalChests++;
+            }
+            else if (this.tiles[countRow][countCol] == 1 || this.tiles[countRow][countCol] == 2)
+               this.collision[countRow][countCol] = 1;
          }
       }
-      
-      this.collisionData = this.collision;
+         
+      this.loadData(this.tiles);
       this.items.loadData(this.items.tiles);
       this.chests.loadData(this.chests.tiles);
+      this.collisionData = this.collision;
    },
-   
+
    createFirstRoom: function() {
       var countRow, countCol;
    
@@ -1602,8 +1598,7 @@ window.onload = function() {
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 2);
                   
                   nextScene.removeChild(nextScene.lastChild);
-                  nextRoom.makeObstacles();
-                  nextRoom.setCollisionAndItems();
+                  nextRoom.populateRoom();
                   nextScene.addChild(new EnemyGroup(metrics.getMaxEnemies(), nextRoom, dir));
                   toCheck.Down = nextScene;
                }
@@ -1630,8 +1625,7 @@ window.onload = function() {
                   nextRoom.editTile((ROOM_HIG_MAX-1)/2+1, (ROOM_WID_MAX-1)/2, 2);
                   
                   nextScene.removeChild(nextScene.lastChild);
-                  nextRoom.makeObstacles();
-                  nextRoom.setCollisionAndItems();
+                  nextRoom.populateRoom();
                   nextScene.addChild(new EnemyGroup(metrics.getMaxEnemies(), nextRoom, dir));
                   toCheck.Up = nextScene;
                }

@@ -278,7 +278,7 @@ var metrics = new function() {
    
    /* Returns the likelihood of a room tile having a chest */
    this.getRoomChestChance = function() {
-      var chance = 0.013;
+      var chance = 0.02;
       return chance;
    }
    
