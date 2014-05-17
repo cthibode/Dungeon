@@ -536,6 +536,9 @@ Room = Class.create(Map, {
       this.xRoom = x;
       this.yRoom = y;
       this.zRoom = z;
+      
+      /* Metric helpers */
+      this.stairsUsed = false;
    },
    
    /* Change the collision data of one tile. col and row are tile indexes, not pixels. */
@@ -600,7 +603,7 @@ Room = Class.create(Map, {
       this.East = Math.floor(Math.random() * 3) > 0 ? true : false;
       this.West = Math.floor(Math.random() * 3) > 0 ? true : false;
       this.Up = this.Down = false;
-      if (Math.floor(Math.random() * 3) == 0 && sceneList.length > 1) {
+      if (Math.random() < metrics.getStairChance() && sceneList.length > 1) {
          if (Math.floor(Math.random() * 2) == 0)
             this.Up = true;
          else
@@ -685,6 +688,8 @@ Room = Class.create(Map, {
             this.Up = scene;
             this.Down = false;
          }
+         else
+            metrics.totalStairs++;
       }
       if ((this.Down == true && dir != DOWN) || dir == UP) {
          this.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2] = DOWN;
@@ -697,6 +702,8 @@ Room = Class.create(Map, {
             this.Down = scene;
             this.Up = false;
          }
+         else
+            metrics.totalStairs++;
       }
       
       this.loadData(this.tiles);
@@ -1425,7 +1432,7 @@ window.onload = function() {
       audStress = metrics.getAudStress();
       audEnergy = metrics.getAudEnergy();
       if (levelType == 2)
-         audStress = audEnergy = 0.1
+         audStress = audEnergy = 0.1;
       aud.generatePattern(audStress, audEnergy, 4, 4, Math.floor(Math.random() * 10000));
       aud.setVolume(0.5);
       aud.togglePlay();
@@ -1601,6 +1608,9 @@ window.onload = function() {
                   nextRoom.populateRoom();
                   nextScene.addChild(new EnemyGroup(metrics.getMaxEnemies(), nextRoom, dir));
                   toCheck.Down = nextScene;
+                  
+                  if (dir != DOWN)
+                     metrics.totalStairs--;
                }
                else {
                   nextRoom.Up = false;
@@ -1608,6 +1618,7 @@ window.onload = function() {
                      nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
                      nextRoom.editTile((ROOM_HIG_MAX-1)/2-1, (ROOM_WID_MAX-1)/2, 2);
                      nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
+                     metrics.totalStairs--;
                   }
                }
             }
@@ -1628,12 +1639,16 @@ window.onload = function() {
                   nextRoom.populateRoom();
                   nextScene.addChild(new EnemyGroup(metrics.getMaxEnemies(), nextRoom, dir));
                   toCheck.Up = nextScene;
+                  
+                  if (dir != UP)
+                     metrics.totalStairs--;
                }
                else {
                   nextRoom.Down = false;
                   if (nextRoom.Up == false && nextRoom.tiles[(ROOM_HIG_MAX-1)/2][(ROOM_WID_MAX-1)/2] != NEXT_LEVEL) {
                      nextRoom.editTile((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
                      nextRoom.editCollision((ROOM_HIG_MAX-1)/2, (ROOM_WID_MAX-1)/2, 0);
+                     metrics.totalStairs--;
                   }
                }
             }
@@ -1687,6 +1702,10 @@ window.onload = function() {
             nextRoom = nextScene.firstChild;
             console.log("Is old Room");
          }
+         if (!map.stairsUsed && !nextRoom.stairsUsed) {
+            map.stairsUsed = nextRoom.stairsUsed = true;
+            metrics.stairsTaken++;
+         }
          player.x = GRID * ((ROOM_WID_MAX-1)/2 + 1);
          player.y = GRID * (ROOM_HIG_MAX-1)/2;
          player.direction = P_RIGHT;
@@ -1696,6 +1715,10 @@ window.onload = function() {
             nextScene = map.Down;
             nextRoom = nextScene.firstChild;
             console.log("Is old Room");
+         }
+         if (!map.stairsUsed && !nextRoom.stairsUsed) {
+            map.stairsUsed = nextRoom.stairsUsed = true;
+            metrics.stairsTaken++;
          }
          player.x = GRID * ((ROOM_WID_MAX-1)/2 - 1);
          player.y = GRID * (ROOM_HIG_MAX-1)/2;
@@ -1707,7 +1730,7 @@ window.onload = function() {
       curScene = nextScene;
       map = nextRoom;
       
-      metrics.doorsEntered++;      
+      metrics.doorsEntered++;     
    }, 
    
    /* 

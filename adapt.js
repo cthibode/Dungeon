@@ -10,6 +10,7 @@ var metrics = new function() {
       this.prevOrbTimeRatio = 0;
       this.prevStrongKilledRatio = 1;
       this.prevFastKilledRatio = 1;
+      this.prevStairsTakenRatio = 0;
    }
 
    /*
@@ -43,6 +44,8 @@ var metrics = new function() {
       this.maxHealth = playerHealth;
       this.minHealth = playerHealth;
       this.roomsVisited = 1;           // NEEDED
+      this.stairsTaken = 0;             // NEEDED
+      this.totalStairs = 0;            // NEEDED
       this.doorsEntered = 0;  
       this.stepsTaken = 0;  
       
@@ -264,6 +267,14 @@ var metrics = new function() {
       return Math.min(1, chance * (max-min) + min);
    }
    
+   /* Returns the probability of a staircase appearing in a room */
+   this.getStairChance = function() {
+      var mid = 0.45;
+      var range = 0.4;
+      var diff = this.prevOrbTimeRatio * (1 - this.prevStairsTakenRatio - 0.5) * range / 0.5
+      return mid + diff;
+   }
+   
    /* ======================================================================= */
    
    /* Returns the likelihood of a room tile having an item. It increases if the
@@ -351,14 +362,19 @@ var metrics = new function() {
          this.totalFastEnemies = 2;
          this.fastEnemyKills = 1;
       }
+      if (this.totalStairs == 0) {
+         this.totalStairs = 2;
+         this.stairsTaken = 1;
+      }
       this.prevOrbTimeRatio = Math.min(this.timeWithOrb, maxTime) / maxTime;
       this.prevStrongKilledRatio = this.strongEnemyKills / this.totalStrongEnemies;
       this.prevFastKilledRatio = this.fastEnemyKills / this.totalFastEnemies;
+      this.prevStairsTakenRatio = this.stairsTaken / this.totalStairs;
       
       this.numLevel++;
-      if (this.prevOrbTimeRatio > 0.75 && this.totLevels < 7 && !this.isEndReached())
+      if (this.prevOrbTimeRatio > 0.7 && this.totLevels < 7 && !this.isEndReached())
          this.totLevels++;
-      else if (this.prevOrbTimeRatio < 0.25 && this.totLevels > 3 && !this.isEndReached())
+      else if (this.prevOrbTimeRatio < 0.3 && this.totLevels > 3 && !this.isEndReached())
          this.totLevels--;
       
       console.log("---LEVEL METRICS---");
