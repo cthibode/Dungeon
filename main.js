@@ -50,7 +50,8 @@ var speech; // Keeps track of the game's state for dialogue
 
 /* Generic function that creates a label */
 var createLabel = function(text, x, y, font, color) {
-   var newLabel = new Label(text);
+   var newLabel = new Label();
+   newLabel.text = text;
    newLabel.x = x;
    newLabel.y = y;
    newLabel.font = typeof(font) !== "undefined" ? font : "14px sans-serif";
@@ -90,56 +91,82 @@ SpeechAct = Class.create({
 Hud = Class.create(Group, {
    initialize: function() {
       Group.call(this);
-      this.bg = new Sprite(GRID * ROOM_WID_INIT, GRID*2);
-      this.bg.image = game.assets["assets/images/hud.png"];
-      this.bg.x = WINDOW/2 - this.bg.width/2;
-      this.bg.y = game.height - GRID*2;
+      var hudX = 80;
+      var hudY = game.height - GRID*2;
+      
+      this.weaponBox = new Sprite(36, 36);
+      this.weaponBox.image = game.assets["assets/images/hud.png"];
+      this.weaponBox.x = hudX + 148;
+      this.weaponBox.y = game.height - GRID*2 + 8;
+      
+      this.shieldBox = new Sprite(36, 36);
+      this.shieldBox.image = game.assets["assets/images/hud.png"];
+      this.shieldBox.x = hudX + 262;
+      this.shieldBox.y = game.height - GRID*2 + 8;
       
       this.stats1 = createLabel("Health: " + player.health + "/" + player.maxHealth + "<br>" +
                                 "Health Potions x " + player.numPotions + "<br>" +
-                                "Keys x " + player.numKeys, this.bg.x + 5, this.bg.y + 5, "14px sans-serif");
-                                
-      this.attack = createLabel("Str: " + player.strength, this.bg.x + 245, game.height - GRID*2 + 10, "10px sans-serif");
-      this.defense = createLabel("Def: " + player.defense, this.bg.x + 245, this.attack.y + 15, "10px sans-serif");
-//       this.stats2 = createLabel("Str: " + player.strength + "<br>" + "Def: " + player.defense,
-//                                 245, game.height - GRID*2 + 10, "10px sans-serif");
+                                "Keys x " + player.numKeys, hudX + 5, hudY + 5, "14px sans-serif");
       
       this.weapon = new Sprite(GRID, GRID);
       this.weapon.image = game.assets["assets/images/items.png"];
       this.weapon.frame = player.sword;
-      this.weapon.x = this.bg.x + 150;
-      this.weapon.y = game.height - GRID*2 + 10;
+      this.weapon.x = hudX + 150;
+      this.weapon.y = hudY + 10;
       
       this.shield = new Sprite(GRID, GRID);
       this.shield.image = game.assets["assets/images/items.png"];
       this.shield.frame = player.shield;
-      this.shield.x = this.bg.x + 200;
-      this.shield.y = game.height - GRID*2 + 10;
+      this.shield.x = hudX + 264;
+      this.shield.y = hudY + 10;
+      
+      this.weaponStats = createLabel("Atk: <br>Def: <br>Effect: ", 
+                                     hudX + 190, hudY + 10, "10px sans-serif");
+      this.shieldStats = createLabel("Def: " + player.defShield,
+                                     hudX + 304, hudY + 10, "10px sans-serif");
       
       this.orb = new Sprite(GRID, GRID);
       this.orb.image = game.assets["assets/images/items.png"];
       this.orb.frame = -1;
-      this.orb.x = this.bg.x + 285;
+      this.orb.x = hudX + 340;
       this.orb.y = game.height - GRID*2 + 10;
       
-      this.addChild(this.bg);
+      this.addChild(this.weaponBox);
+      this.addChild(this.shieldBox);
       this.addChild(this.stats1);
       this.addChild(this.weapon);
       this.addChild(this.shield);
+      this.addChild(this.weaponStats);
+      this.addChild(this.shieldStats);
       this.addChild(this.orb);
-      this.addChild(this.attack);
-      this.addChild(this.defense);
    },
    
    onenterframe: function() {
       this.stats1.text = "Health: " + player.health + "/" + player.maxHealth + "<br>" +
                         "Health Potions x " + player.numPotions + "<br>" +
                         "Keys x " + player.numKeys;
-//       this.stats2.text = "Str: " + player.strength + "<br>" + "Def: " + player.defense;
       this.weapon.frame = player.sword;
       this.shield.frame = player.shield;  
-      this.attack.text = "Str: " + player.strength;
-      this.defense.text = "Def: " + player.defense;
+
+      var effectStr;
+      if (player.sword == 8)
+         effectStr = "Freeze";
+      else if (player.sword == 9)
+         effectStr = "Atk spd x0.67";
+      else if (player.sword == 10)
+         effectStr = "Walk spd x2";
+      else if (player.sword == 12)
+         effectStr = "Poison";
+      else if (player.sword == 13)
+         effectStr = "Atk spd x1.25";
+      else
+         effectStr = "None";
+         
+      this.weaponStats.text = "Atk: " + player.strength + "<br>" + 
+                              "Def: " + player.defSword + "<br>" +
+                              "Effect: <br> " + effectStr;
+      this.shieldStats.text = "Def: " + player.defShield;
+      
       if (player.hasOrb)
          this.orb.frame = ORB;
       else
@@ -177,33 +204,33 @@ TextBox = Class.create(Group, {
       if (itemNum == ORB)
          this.desc.text = "Pearl of the World<br> <br>It seems to possess some sort of mystical power..."
       else if (itemNum == 7)
-         this.desc.text = "Steel sword<br> <br>Attack +4";
+         this.desc.text = "Steel sword<br> <br>Attack: 7";
       else if (itemNum == 8)
-         this.desc.text = "Sword of Ice<br> <br>Attack +4, Health -25, Slows enemies on hit";
+         this.desc.text = "Sword of Ice<br> <br>Attack: 7, Health -25, Slows enemies on hit";
       else if (itemNum == 9)
-         this.desc.text = "Sword of Earth<br> <br>Attack +4, Defense +3, Attack Speed x0.67";
+         this.desc.text = "Sword of Earth<br> <br>Attack: 7, Defense: 3, Attack Speed x0.67";
       else if (itemNum == 10)
-         this.desc.text = "Sword of Light<br> <br>Attack +0, Walking Speed x2";
+         this.desc.text = "Sword of Light<br> <br>Attack: 3, Walking Speed x2";
       else if (itemNum == 11)
-         this.desc.text = "Sword of Fire<br> <br>Attack +7, Defense -2, Health -10";
+         this.desc.text = "Sword of Fire<br> <br>Attack: 10, Defense: -2, Health -10";
       else if (itemNum == 12)
-         this.desc.text = "Sword of Poison<br> <br>Attack -1, Poisons enemies on hit";
+         this.desc.text = "Sword of Poison<br> <br>Attack: 2, Poisons enemies on hit";
       else if (itemNum == 13)
-         this.desc.text = "Sword of Water<br> <br>Attack +0, Attack Speed x1.25, Health +10";
+         this.desc.text = "Sword of Water<br> <br>Attack: 3, Attack Speed x1.25, Health +10";
       else if (itemNum == 14)
-         this.desc.text = "Toy Shield<br> <br>Defense +1";
+         this.desc.text = "Toy Shield<br> <br>Defense: 1";
       else if (itemNum == 15)
-         this.desc.text = "Wooden Shield<br> <br>Defense +2";
+         this.desc.text = "Wooden Shield<br> <br>Defense: 2";
       else if (itemNum == 16)
-         this.desc.text = "Battle Paddle<br> <br>Defense +3";
+         this.desc.text = "Battle Paddle<br> <br>Defense: 3";
       else if (itemNum == 17)
-         this.desc.text = "The Protector<br> <br>Defense +4";
+         this.desc.text = "The Protector<br> <br>Defense: 4";
       else if (itemNum == 18)
-         this.desc.text = "War Door<br> <br>Defense +5";
+         this.desc.text = "War Door<br> <br>Defense: 5";
       else if (itemNum == 19)
-         this.desc.text = "Splendid Screen<br> <br>Defense +6";
+         this.desc.text = "Splendid Screen<br> <br>Defense: 6";
       else if (itemNum == 20)
-         this.desc.text = "Divine Defender<br> <br>Defense +7";
+         this.desc.text = "Divine Defender<br> <br>Defense: 7";
    },
    
    customText: function(str) {
@@ -234,7 +261,7 @@ Player = Class.create(Sprite, {
       this.cooldown = 0;
       
       /* Character stats */
-      this.sword = 1;                                                                                                //***VARY***
+      this.sword = 1;
       this.strength = 3;
       this.shield = -1;
       this.defense = this.defSword = this.defShield = 0;
@@ -1308,10 +1335,10 @@ window.onload = function() {
       controlsScene.backgroundColor = "black";
       
       var controlsTitle = createLabel("CONTROLS", 50, 50, "28px sans-serif");
-      var controlsDetails = createLabel("W,A,S,D - Move<br>" +
-                                        "I,J,K,L - Attack<br>" +
-                                        "N - Use health potion<br>" +
-                                        "M - Swap item, drop or pick up pearl<br>" +
+      var controlsDetails = createLabel("W,A,S,D - Move<br> <br>" +
+                                        "I,J,K,L - Attack<br> <br>" +
+                                        "N - Use health potion<br> <br>" +
+                                        "M - Swap item, drop or pick up pearl<br> <br>" +
                                         "Space - Unlock chest",
                                         50, 110, "14px sans-serif");
       var controlsToMenu = createLabel("Press space to return to menu", 50, WINDOW-50, "14px sans-serif");
@@ -1333,9 +1360,12 @@ window.onload = function() {
       creditsScene.backgroundColor = "black";
       
       var creditsTitle = createLabel("CREDITS", 50, 50, "28px sans-serif");
-      var creditsDetails = createLabel("Senior Project by Cameron Thibodeaux <br>2014",
+      var creditsDetails = createLabel("Senior Project by Cameron Thibodeaux, 2014" + "<br> <br>" +
+                                       "AUD.js Procedural Music Generator - Timothey Adam",
                                        50, 110, "14px sans-serif");
       var creditsToMenu = createLabel("Press space to return to menu", 50, WINDOW-50, "14px sans-serif");
+      
+      creditsTitle.width = creditsDetails.width = WINDOW;
       
       creditsScene.addChild(creditsTitle);
       creditsScene.addChild(creditsDetails);
