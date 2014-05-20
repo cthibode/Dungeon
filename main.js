@@ -18,6 +18,7 @@ var DOWN = 4;
 var UP = 5;
 var NEXT_LEVEL = 7;
 var GAME_EXIT = 12;
+var PIT = 13;
 
 var P_UP = 3;     /* Directions for the player */
 var P_DOWN = 0;
@@ -299,20 +300,41 @@ Player = Class.create(Sprite, {
    /* Add a text box if the player is standing on an item */
    checkTextBox: function() {
       var tileContents = map.items.checkTile(this.x, this.y);
+      var nextToPit = map.checkTile(this.x + GRID, this.y) == PIT ||
+                      map.checkTile(this.x - GRID, this.y) == PIT ||
+                      map.checkTile(this.x, this.y + GRID) == PIT ||
+                      map.checkTile(this.x, this.y - GRID) == PIT;
+      var nextToExit = map.checkTile(this.x, this.y + GRID) == GAME_EXIT;
       
-      if (curScene.lastChild == player && (tileContents >= 7 && tileContents < 21 || tileContents == ORB))
-         curScene.addChild(new TextBox(this.y/GRID, tileContents));
-      else if (curScene.lastChild != player && tileContents < 0)
+      if (curScene.lastChild != player && tileContents < 0 && !(nextToPit && player.hasOrb) && !nextToExit)
          curScene.removeChild(curScene.lastChild);
-      else if (curScene.lastChild != player && (tileContents >= 7 && tileContents < 21 || tileContents == ORB))
+      /* Related to being next to a tile */
+      else if (nextToPit && player.hasOrb) {
+         if (curScene.lastChild == player)
+            curScene.addChild(new TextBox(this.y/GRID));
+         curScene.lastChild.customText("Throw the pearl in the pit?<br> <br> Press M to throw the pearl in the pit");
+      }
+      else if (nextToExit) {
+         if (curScene.lastChild == player)
+            curScene.addChild(new TextBox(this.y/GRID));
+         if (player.hasOrb)
+            curScene.lastChild.customText("Proceed to leave with the pearl");
+         else
+            curScene.lastChild.customText("Proceed to leave without the pearl");
+      }
+      /* Related to items the player is standing on */
+      else if (tileContents >= 7 && tileContents < 21 || tileContents == ORB) {
+         if (curScene.lastChild == player)
+            curScene.addChild(new TextBox(this.y/GRID, tileContents));
          curScene.lastChild.changeText(tileContents);
+      }
    },
    
    /* Process item pickups */
    checkItem: function() {
       var tileContents = map.items.checkTile(this.x, this.y);
       
-      if (this.cooldown == 0 && game.input.swapItem || tileContents == POTION || tileContents == KEY) {
+      if (this.cooldown == 0 && game.input.swapItem && !map.pitRoom || tileContents == POTION || tileContents == KEY) {
          game.processPickup(tileContents);
          metrics.str = player.strength;
          metrics.def = player.defense;
@@ -330,6 +352,15 @@ Player = Class.create(Sprite, {
             metrics.maxHealth = player.health;
             
          this.cooldown = 5;
+      }
+      else if (map.pitRoom && game.input.swapItem && player.hasOrb &&
+               (map.checkTile(this.x + GRID, this.y) == PIT ||
+               map.checkTile(this.x - GRID, this.y) == PIT ||
+               map.checkTile(this.x, this.y + GRID) == PIT ||
+               map.checkTile(this.x, this.y - GRID) == PIT)) {
+         var newSound = game.assets['assets/sounds/swap.wav'].clone();
+         newSound.play();
+         player.hasOrb = false;        
       }
       else if (this.cooldown > 0)
          this.cooldown--;
@@ -563,6 +594,9 @@ Room = Class.create(Map, {
       this.xRoom = x;
       this.yRoom = y;
       this.zRoom = z;
+      
+      /* Used to determine allowed player actions for the room with the pit */
+      this.pitRoom = false;
       
       /* Metric helpers */
       this.stairsUsed = false;
@@ -914,10 +948,15 @@ Room = Class.create(Map, {
       this.tiles[this.wallS][(ROOM_WID_MAX-1)/2] = GAME_EXIT;
       this.collision[this.wallS][(ROOM_WID_MAX-1)/2] = 0;
       
+      this.tiles[this.wallN+2][(ROOM_WID_MAX-1)/2] = PIT;
+      this.collision[this.wallN+2][(ROOM_WID_MAX-1)/2] = 1;
+      
       this.loadData(this.tiles);
       this.collisionData = this.collision;
       this.items.loadData(this.items.tiles);
       this.chests.loadData(this.chests.tiles);
+      
+      this.pitRoom = true;
    }
    
 });

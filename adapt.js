@@ -354,6 +354,8 @@ var metrics = new function() {
       clearInterval(this.clockOrb);
       
       var maxTime = 120;   /* The cap orb-held-time to prevent dramatic changes */
+      /* If the no strong enemies, fast enemies, or stairs were seen in the level,
+       * set the ratio to 1/2 by default */
       if (this.totalStrongEnemies == 0) {
          this.totalStrongEnemies = 2;
          this.strongEnemyKills = 1;
