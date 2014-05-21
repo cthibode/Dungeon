@@ -261,7 +261,7 @@ var metrics = new function() {
       The chance is less for the first level. */
    this.getObstacleChance = function() {
       this.calculateAverages();
-      var min = 0.15;
+      var min = 0.05;
       var max = 0.45;
       var chance = (this.prevOrbTimeRatio + (1 - this.prevFastKilledRatio) + (1 - this.prevStrongKilledRatio)) / 3;
       return Math.min(1, chance * (max-min) + min);

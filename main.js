@@ -77,11 +77,35 @@ var createLabel = function(text, x, y, font, color) {
  */
 SpeechAct = Class.create({
    initialize: function() {
-      this.state = 0;
+      this.textBox = null;
+      this.textTimer = 0;
+      this.time = 0;
    },
    
-   changeState: function(newState) {
-      this.state = newState;
+   /* If there is an event, display a text box with dialogue for a certain amount of time */
+   triggerEvent: function() {
+      // Call speech act function here. Should return text and a time in seconds
+      if (Math.random() < 0.2) { // Change this to "if text/time is returned"
+         this.time = 5;
+         this.textBox = new TextBox(player.y/GRID); 
+         this.textBox.customText("Some important event happened!<br> <br>Fill in dialogue here!");
+         curScene.addChild(this.textBox);
+            
+         clearInterval(this.textTimer);
+         this.textTimer = setTimeout(function() {
+            curScene.removeChild(speech.textBox);
+            speech.textBox = null;
+         }, this.time * 1000);
+      }
+   },
+   
+   /* Remove the event dialogue if leaving the room before it's over */
+   removeTextBox: function() {
+      if (this.textBox != null) {
+         curScene.removeChild(this.textBox);
+         this.textBox = null;
+         clearInterval(this.textTimer);
+      }
    }
 });
 
@@ -192,12 +216,12 @@ TextBox = Class.create(Group, {
       this.sprite.x = WINDOW/2 - this.sprite.width * this.sprite.scaleX / 2;
       this.sprite.y = playerY < ROOM_HIG_MAX/4 ? game.height - GRID*2 - 50 * this.sprite.scaleY : 0;
       
-      this.addChild(this.sprite);
-      
       this.desc = createLabel("", this.sprite.x + 17, this.sprite.y + 15, "14px sans-serif");
       this.desc.textAlign = "center";
       this.desc.width = WINDOW - 55;
       this.changeText(itemNum);
+      
+      this.addChild(this.sprite);
       this.addChild(this.desc);
    },
    
@@ -279,6 +303,9 @@ Player = Class.create(Sprite, {
       /* Variable to keep track if the player is holding the pearl/orb */
       this.hasOrb = false;
       this.seenOrb = false;
+      
+      /* Text box associated with the player */
+      this.currentText = null;
    },
    
    onenterframe: function() {
@@ -306,27 +333,37 @@ Player = Class.create(Sprite, {
                       map.checkTile(this.x, this.y - GRID) == PIT;
       var nextToExit = map.checkTile(this.x, this.y + GRID) == GAME_EXIT;
       
-      if (curScene.lastChild != player && tileContents < 0 && !(nextToPit && player.hasOrb) && !nextToExit)
-         curScene.removeChild(curScene.lastChild);
-      /* Related to being next to a tile */
-      else if (nextToPit && player.hasOrb) {
-         if (curScene.lastChild == player)
-            curScene.addChild(new TextBox(this.y/GRID));
-         curScene.lastChild.customText("Throw the pearl in the pit?<br> <br> Press M to throw the pearl in the pit");
-      }
-      else if (nextToExit) {
-         if (curScene.lastChild == player)
-            curScene.addChild(new TextBox(this.y/GRID));
-         if (player.hasOrb)
-            curScene.lastChild.customText("Proceed to leave with the pearl");
-         else
-            curScene.lastChild.customText("Proceed to leave without the pearl");
-      }
-      /* Related to items the player is standing on */
-      else if (tileContents >= 7 && tileContents < 21 || tileContents == ORB) {
-         if (curScene.lastChild == player)
-            curScene.addChild(new TextBox(this.y/GRID, tileContents));
-         curScene.lastChild.changeText(tileContents);
+      if (speech.textBox == null) {
+         if (this.currentText != null && tileContents < 0 && !(nextToPit && player.hasOrb) && !nextToExit) {
+            curScene.removeChild(this.currentText);
+            this.currentText = null;
+         }
+         /* Related to being next to a tile */
+         else if (nextToPit && player.hasOrb) {
+            if (this.currentText == null) {
+               this.currentText = new TextBox(this.y/GRID);
+               curScene.addChild(this.currentText);
+            }
+            this.currentText.customText("Throw the pearl in the pit?<br> <br> Press M to throw the pearl in the pit");
+         }
+         else if (nextToExit) {
+            if (this.currentText == null) {
+               this.currentText = new TextBox(this.y/GRID);
+               curScene.addChild(this.currentText);
+            }
+            if (player.hasOrb)
+               this.currentText.customText("Proceed to leave with the pearl");
+            else
+               this.currentText.customText("Proceed to leave without the pearl");
+         }
+         /* Related to items the player is standing on */
+         else if (tileContents >= 7 && tileContents < 21 || tileContents == ORB) {
+            if (this.currentText == null) {
+               this.currentText = new TextBox(this.y/GRID);
+               curScene.addChild(this.currentText);
+            }
+            this.currentText.changeText(tileContents);//curScene.lastChild.changeText(tileContents);
+         }
       }
    },
    
@@ -1549,6 +1586,8 @@ window.onload = function() {
       var count;
       
       curScene.removeChild(player);
+      speech.removeTextBox();
+      
       if ((dir == NORTH && map.North == true) || (dir == SOUTH && map.South == true) ||
           (dir == EAST && map.East == true) || (dir == WEST && map.West == true) ||
           (dir == UP && map.Up == true) || (dir == DOWN && map.Down == true)) {
@@ -1798,6 +1837,8 @@ window.onload = function() {
       game.replaceScene(nextScene);
       curScene = nextScene;
       map = nextRoom;
+      
+      speech.triggerEvent();
       
       metrics.doorsEntered++;     
    }, 
