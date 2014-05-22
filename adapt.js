@@ -421,7 +421,8 @@ var metrics = new function() {
 //       console.log("Steps per Room: " + this.stepsPerRoom);
       console.log("Orb time ratio: " + this.prevOrbTimeRatio);
       console.log("Fast enemies killed to encountered ratio: " + this.prevFastKilledRatio);
-      console.log("Strong enemies killed to encountered ratio: " + this.prevStrongKilledRatio);      
+      console.log("Strong enemies killed to encountered ratio: " + this.prevStrongKilledRatio);
+      console.log("Stairs taken to total stairs ratio: " + this.prevStairsTakenRatio);
    }
 
 };

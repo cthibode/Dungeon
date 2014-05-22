@@ -84,8 +84,8 @@ SpeechAct = Class.create({
    
    /* If there is an event, display a text box with dialogue for a certain amount of time */
    triggerEvent: function() {
-      // Call speech act function here. Should return text and a time in seconds
-      if (Math.random() < 0.2) { // Change this to "if text/time is returned"
+      // Call speech act function here. Should return text (and a time in seconds?)
+      if (0) { // Change this to "if text is returned"
          this.time = 5;
          this.textBox = new TextBox(player.y/GRID); 
          this.textBox.customText("Some important event happened!<br> <br>Fill in dialogue here!");
@@ -891,8 +891,8 @@ Room = Class.create(Map, {
          }
          exitCoords.length = 0;
          
-         retry.Attempts++;
-         obstacleChance *= 0.8;
+         if (++retry.Attempts % 5 == 0)
+            obstacleChance *= 0.9;
       } while (retry.Value && retry.Attempts < 50);
       
       /* Only set the walls and chests if it didn't time out */
@@ -1396,15 +1396,20 @@ window.onload = function() {
    
    game.onload = function() {
       /* Creating Main Menu */
-      var title = createLabel("DUNGEON<br> <br>ADVENTURE", 50, 50, "32px sans-serif");
-      var newGame = createLabel("New Game", 50, 150, "14px sans-serif", "red");
-      var controls = createLabel("Controls", 50, 175, "14px sans-serif");
-      var credits = createLabel("Credits", 50, 200, "14px sans-serif");
+      var title = createLabel("PEARL OF THE WORLD", 0, 150, "32px sans-serif");
+      var newGame = createLabel("New Game", 0, 240, "14px sans-serif", "red");
+      var controls = createLabel("Controls", 0, 270, "14px sans-serif");
+      var credits = createLabel("Credits", 0, 300, "14px sans-serif");
+      var instructions = createLabel("WASD to navigate, Space to select", 20, WINDOW - 30, "12px sans-serif");
+      
+      title.textAlign = newGame.textAlign = controls.textAlign = credits.textAlign = "center";
+      title.width = newGame.width = controls.width = credits.width = WINDOW;
       
       game.rootScene.addChild(title);
       game.rootScene.addChild(newGame);
       game.rootScene.addChild(controls);
       game.rootScene.addChild(credits);
+      game.rootScene.addChild(instructions);
       
       /* Creating the controls screen */
       var controlsScene = new Scene();
