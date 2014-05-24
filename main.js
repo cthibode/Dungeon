@@ -61,19 +61,7 @@ var createLabel = function(text, x, y, font, color) {
 };
 
 /*
- * The SpeechAct class keeps track of the game's current state for dialogue. Speech
- * acts are sent on the transition between states:
- *    0 = Game start
- *    1 = Picked up orb
- *    2 = Held onto orb for half the max time (half misfortune)
- *    3 = Held onto orb for max time (max misfortune)
- *    4 = Recover from misfortune halfway
- *    5 = Fully recover from misfortune
- *    6 = Reach portal room without the orb
- *    7 = End of level / beginning of next level
- *    8 = First changed room of new level
- *    9 = At ending room
- *    10 = Back to the start after the ending room
+ * The SpeechAct class triggers events and text boxes for dialogue.
  */
 SpeechAct = Class.create({
    initialize: function() {
@@ -84,8 +72,8 @@ SpeechAct = Class.create({
    
    /* If there is an event, display a text box with dialogue for a certain amount of time */
    triggerEvent: function() {
-      // Call speech act function here. Should return text (and a time in seconds?)
-      if (0) { // Change this to "if text is returned"
+      // getDialogue(metrics, player); // *** Call speech act function here. Should return a string ***
+      if (1) { // Change this to "if text is returned" i.e. "text is not an empty string"
          this.time = 5;
          this.textBox = new TextBox(player.y/GRID); 
          this.textBox.customText("Some important event happened!<br> <br>Fill in dialogue here!");
@@ -1574,6 +1562,8 @@ window.onload = function() {
             player.hasOrb = player.seenOrb = true;
          }
       }
+      
+      speech.triggerEvent();
    }
    
    /* 
