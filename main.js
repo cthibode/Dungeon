@@ -73,7 +73,7 @@ SpeechAct = Class.create({
    /* If there is an event, display a text box with dialogue for a certain amount of time */
    triggerEvent: function() {
       // getDialogue(metrics, player); // *** Call speech act function here. Should return a string ***
-      if (1) { // Change this to "if text is returned" i.e. "text is not an empty string"
+      if (0) { // Change this to "if text is returned" i.e. "text is not an empty string"
          this.time = 5;
          this.textBox = new TextBox(player.y/GRID); 
          this.textBox.customText("Some important event happened!<br> <br>Fill in dialogue here!");
@@ -98,7 +98,7 @@ SpeechAct = Class.create({
 });
 
 /* 
- * The Hud class displays the player's stats (health, # of potions) 
+ * The Hud class displays the player's stats (health, # of potions, weapons) 
  * on the bottom of the screen
  */
 Hud = Class.create(Group, {
@@ -188,13 +188,12 @@ Hud = Class.create(Group, {
 });
 
 /* 
- * The TextBox class is used to display information about items to the player.
+ * The TextBox class is used to display information and dialogue to the player.
  * Parameters:
  *    playerY = the Y position of the player, in number of tiles.
- *    itemNum = the frame number of the item to describe.
  */
 TextBox = Class.create(Group, {
-   initialize: function(playerY, itemNum) {
+   initialize: function(playerY) {
       Group.call(this);
       
       this.sprite = new Sprite(GRID * ROOM_WID_INIT, 50);
@@ -207,7 +206,6 @@ TextBox = Class.create(Group, {
       this.desc = createLabel("", this.sprite.x + 17, this.sprite.y + 15, "14px sans-serif");
       this.desc.textAlign = "center";
       this.desc.width = WINDOW - 55;
-      this.changeText(itemNum);
       
       this.addChild(this.sprite);
       this.addChild(this.desc);
@@ -350,7 +348,7 @@ Player = Class.create(Sprite, {
                this.currentText = new TextBox(this.y/GRID);
                curScene.addChild(this.currentText);
             }
-            this.currentText.changeText(tileContents);//curScene.lastChild.changeText(tileContents);
+            this.currentText.changeText(tileContents);
          }
       }
    },
@@ -369,7 +367,7 @@ Player = Class.create(Sprite, {
       else if (this.cooldown == 0 && game.input.usePotion && player.numPotions > 0 && 
                player.health != player.maxHealth) {
          player.numPotions--;
-         player.health = player.health+20 > player.maxHealth ? player.maxHealth : player.health+20;                  //***CHANGE***
+         player.health = player.health+20 > player.maxHealth ? player.maxHealth : player.health+20;
          
          metrics.potionsUsed++;
          metrics.potionsHeld = player.numPotions;
@@ -434,26 +432,23 @@ Player = Class.create(Sprite, {
    attack: function() {   
       var swingSound;
       if (!this.isAttacking) {
+         swingSound = game.assets['assets/sounds/sword_swing.wav'].clone()
          if (game.input.attackLeft) {
-            swingSound = game.assets['assets/sounds/sword_swing.wav'].clone();
             swingSound.play();
             this.direction = P_LEFT;
             this.isAttacking = true;
          }
          else if (game.input.attackRight) {
-            swingSound = game.assets['assets/sounds/sword_swing.wav'].clone();
             swingSound.play();
             this.direction = P_RIGHT;
             this.isAttacking = true;
          }
          else if (game.input.attackUp) {
-            swingSound = game.assets['assets/sounds/sword_swing.wav'].clone();
             swingSound.play();
             this.direction = P_UP;
             this.isAttacking = true;
          }
          else if (game.input.attackDown) {
-            swingSound = game.assets['assets/sounds/sword_swing.wav'].clone();
             swingSound.play();
             this.direction = P_DOWN;
             this.isAttacking = true;
@@ -556,6 +551,7 @@ Player = Class.create(Sprite, {
  * Parameters:
  *    dir = The direction that the player went to get to this room
  *    scene = The scene of the room that should be stored as the previous room
+ *    x, y, z = Coordinates of this room in relation to the first room of the level
  */
 Room = Class.create(Map, {
    initialize: function(dir, scene, x, y, z) {
@@ -915,21 +911,9 @@ Room = Class.create(Map, {
       this.collisionData = this.collision;
    },
 
+   /* Initialize the first room of the game */
    createFirstRoom: function() {
-      var countRow, countCol;
-   
-      for (countRow = this.wallN; countRow < this.wallS; countRow++) {
-         for (countCol = this.wallW+1; countCol < this.wallE; countCol++) {
-            if (countRow == this.wallN && this.tiles[countRow][countCol] == 1)
-               this.tiles[countRow][countCol] = 2;
-            else if (countRow != this.wallN) {
-               this.tiles[countRow][countCol] = 0;
-               this.items.tiles[countRow][countCol] = -1;
-               this.chests.tiles[countRow][countCol] = -1;
-               this.collision[countRow][countCol] = 0;
-            }
-         }
-      }
+      this.resetRoom();
             
       this.items.tiles[5][6] = 8;
       this.items.tiles[5][8] = 9;
@@ -948,6 +932,7 @@ Room = Class.create(Map, {
       metrics.totalKeys = player.numKeys;
    },
    
+   /* Initialize the room with the pit */
    createLastRoom: function() {
       var countRow, countCol;
    
@@ -1998,7 +1983,7 @@ window.onload = function() {
     * Parameters:
     *    wantOrb = true if there is a possibility of returning the orb
     */
-   game.getRandomItem = function(wantOrb) {                                                                       //***VARY***
+   game.getRandomItem = function(wantOrb) {
       var itemFrame;
       var orbChance = metrics.getOrbChance();
       var randomNum = Math.random();
@@ -2064,28 +2049,35 @@ window.onload = function() {
       
       var title;
       if (endType == 1)
-         title = createLabel("GAME OVER", 130, 10, "16px sans-serif");
+         title = createLabel("GAME OVER", 0, 50, "28px sans-serif");
       else if (endType == 2)
-         title = createLabel("YOU'VE ESCAPED THE DUNGEON", 60, 10, "16px sans-serif");
+         title = createLabel("YOU'VE ESCAPED THE DUNGEON", 0, 50, "28px sans-serif");
       else
-         title = createLabel("LEVEL COMPLETE", 100, 10, "16px sans-serif");
+         title = createLabel("LEVEL COMPLETE", 0, 50, "28px sans-serif");
       
-      var metricLabel = createLabel("Strength: " + metrics.str + "<br>" +
-                                    "Strength change: " + (metrics.str-metrics.strAtStart) + "<br>" +
+      var metricLabel = createLabel("Attack: " + metrics.str + "<br>" +
+                                    "Change in Attack: " + (metrics.str-metrics.strAtStart) + "<br>" +
                                     "Defense: " + metrics.def + "<br>" +
-                                    "Defense change: " + (metrics.def-metrics.defAtStart) + "<br>" +
+                                    "Change in Defense: " + (metrics.def-metrics.defAtStart) + "<br>" +
                                     "Damage dealt: " + metrics.dmgDealt + "<br>" +
                                     "Damage taken: " + metrics.dmgTaken + "<br>" +
-                                    "Potions held: " + metrics.potionsHeld + "<br>" +
+                                    "Slugs killed: " + metrics.strongEnemyKills + " / " + metrics.totalStrongEnemies + "<br>" +
+                                    "Bats killed: " + metrics.fastEnemyKills + " / " + metrics.totalFastEnemies + "<br>" +
+                                    "Accuracy: " + metrics.accuracy * 100 + "%" + "<br>" +
                                     "Potions used: " + metrics.potionsUsed + "<br>" +
                                     "Max health: " + metrics.maxHealth + "<br>" +
                                     "Min health: " + metrics.minHealth + "<br>" +
                                     "Rooms visited: " + metrics.roomsVisited + "<br>" +
                                     "Doors entered: " + metrics.doorsEntered + "<br>" +
+                                    "Staircases taken: " + metrics.stairsTaken + " / " + metrics.totalStairs + "<br>" +
+                                    "Steps taken: " + metrics.stepsTaken + "<br>" +
                                     "Total time (seconds): " + metrics.time + "<br>"  +
-                                    " <br>" +
+                                    " <br> <br>" +
                                     "Press space to continue",
-                                    30, 40, "10px sans-serif");
+                                    0, 110, "12px sans-serif");
+                                    
+      title.width = metricLabel.width = WINDOW;
+      title.textAlign = metricLabel.textAlign = "center";
       
       results.addChild(title);
       results.addChild(metricLabel);
