@@ -791,7 +791,7 @@ Room = Class.create(Map, {
       this.loadData(this.tiles);
    }, 
    
-   /* Randomly fills the room with walls, chests, and items and sets collision accordingly */
+   /* Fills the room with walls, chests, and items and sets collision accordingly */
    populateRoom: function() {
       var countRow, countCol;
       var isPath, startX, startY, endX, endY;
@@ -800,10 +800,10 @@ Room = Class.create(Map, {
       var retry = {Value: false, Attempts: 0};
       var tempTiles = Array(ROOM_HIG_MAX);
       var placeholder = 3; // Arbitrary placeholder tile not used in rooms for chest placement
-      
+   
       var obstacleChance = metrics.getObstacleChance();
       var chestChance = metrics.getRoomChestChance();
-      
+   
       pathFinder.setAcceptableTiles([0, NEXT_LEVEL, NORTH, SOUTH, EAST, WEST, UP, DOWN]);
       do {
          retry.Value = false;
@@ -822,10 +822,10 @@ Room = Class.create(Map, {
                   tempTiles[countRow-1][countCol] = 1;
             }
          }
-         
+      
          pathFinder.setGrid(tempTiles);
 
-         /* Establishing the tiles that can't be blocked */
+         /* Establishing the tiles that can't be blocked*/
          if (this.North != false) {
             exitCoords.push((ROOM_WID_MAX-1)/2);
             exitCoords.push(this.wallN);
@@ -858,11 +858,11 @@ Room = Class.create(Map, {
             exitCoords.push((ROOM_WID_MAX-1)/2);
             exitCoords.push((ROOM_HIG_MAX-1)/2);
          }
-         
+      
          /* Make sure there is a path to each exit */
          startX = exitCoords.shift();
          startY = exitCoords.shift();
-                  
+               
          while (exitCoords.length > 0) {
             endX = exitCoords.shift();
             endY = exitCoords.shift();
@@ -874,15 +874,15 @@ Room = Class.create(Map, {
             pathFinder.calculate();
          }
          exitCoords.length = 0;
-         
+      
          if (++retry.Attempts % 5 == 0)
             obstacleChance *= 0.9;
       } while (retry.Value && retry.Attempts < 50);
-      
+   
       /* Only set the walls and chests if it didn't time out */
       if (retry.Attempts < 50)
          this.tiles = tempTiles;
-      
+   
       /* Put chests, items, and collision in the room */
       for (countRow = this.wallN; countRow <= this.wallS; countRow++) {
          for (countCol = this.wallW; countCol <= this.wallE; countCol++) {
@@ -904,7 +904,7 @@ Room = Class.create(Map, {
                this.collision[countRow][countCol] = 1;
          }
       }
-         
+      
       this.loadData(this.tiles);
       this.items.loadData(this.items.tiles);
       this.chests.loadData(this.chests.tiles);

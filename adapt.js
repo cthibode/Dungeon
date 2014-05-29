@@ -68,6 +68,7 @@ var metrics = new function() {
       /* The misfortune variable determines how well things go for the player. It increases as the
          player holds the orb and decreases as the player is not holding the orb (0-1) */
       this.misfortune = 0;
+      this.delta = 0.01;
       
       this.clock = setInterval(function() {
          ++metrics.time;
@@ -79,8 +80,13 @@ var metrics = new function() {
       clearInterval(this.clockOrb);
       this.clockOrb = setInterval(function() {
          ++metrics.timeWithOrb;
-         if (metrics.misfortune < 1)
-            metrics.misfortune += 0.02;
+         if (metrics.misfortune < 1) {
+            metrics.delta = Math.max(metrics.misfortune * 0.075, 0.01); // 42 seconds from min to max misfortune
+            if (metrics.misfortune + metrics.delta < 1)
+               metrics.misfortune += metrics.delta;
+            else
+               metrics.misfortune = 1;
+         }
       }, 1000);
    }
    
@@ -88,8 +94,13 @@ var metrics = new function() {
    this.dropOrb = function() {
       clearInterval(this.clockOrb);
       this.clockOrb = setInterval(function() {
-         if (metrics.misfortune > 0)
-            metrics.misfortune -= 0.02;
+         if (metrics.misfortune > 0) {
+            metrics.delta = Math.max(metrics.misfortune * 0.075, 0.01); // 42 seconds from max to min misfortune
+            if (metrics.misfortune - metrics.delta > 0)
+               metrics.misfortune -= metrics.delta;
+            else
+               metrics.misfortune = 0;
+         }
       }, 1000);
    }
    
